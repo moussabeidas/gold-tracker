@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "Gold – XAU/USD Tracker",
+    "slug": "gold-tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "goldtracker",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "primaryColor": "#FFD700",
+    "description": "Track live gold prices and manage your physical gold portfolio. Real-time XAU/USD charts, gain/loss analytics, and camera photo capture for every bar and coin.",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "bundleIdentifier": "com.goldtracker.app",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "requireFullScreen": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Gold Tracker uses your camera to photograph your gold bars and coins for your portfolio records.",
+        "NSPhotoLibraryUsageDescription": "Gold Tracker accesses your photo library to add images of your gold holdings.",
+        "NSPhotoLibraryAddUsageDescription": "Gold Tracker saves photos of your gold holdings to your library."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "backgroundColor": "#000000",
+      "package": "com.goldtracker.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Gold Tracker accesses your photos to add images of your gold holdings.",
+          "cameraPermission": "Gold Tracker uses your camera to photograph your gold bars and coins."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8f876a5a-1c87-4419-848c-5d62252c5d06"
+      }
+    },
+    "owner": "mbeidas"
+  }
+}

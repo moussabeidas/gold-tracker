@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Screenshot 1 – Live Gold Price</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width: 430px; height: 932px;
+    background: #000;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #fff;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Status bar */
+  .status { display:flex; justify-content:space-between; align-items:center;
+    padding: 16px 28px 0; font-size:15px; font-weight:600; color:#fff; }
+
+  /* Header */
+  .header { padding: 18px 24px 10px; }
+  .header-top { display:flex; justify-content:space-between; align-items:center; }
+  .header-title { font-size:28px; font-weight:700; color:#fff; letter-spacing:-0.5px; }
+  .header-subtitle { font-size:13px; color:#888; margin-top:2px; }
+
+  /* Price block */
+  .price-block { padding: 8px 24px 16px; }
+  .price-main { font-size:54px; font-weight:700; color:#fff; letter-spacing:-2px; line-height:1; }
+  .price-change { display:inline-flex; align-items:center; gap:6px; margin-top:8px;
+    background:#1A2E1A; border-radius:10px; padding:5px 12px; }
+  .price-change-text { font-size:15px; font-weight:600; color:#34C759; }
+
+  /* Range pills */
+  .range-pills { display:flex; gap:8px; padding: 0 24px 14px; }
+  .pill { padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600;
+    background:#1C1C1E; color:#888; }
+  .pill.active { background:#FFD700; color:#000; }
+
+  /* Chart area */
+  .chart-area { padding: 0 16px; height: 220px; position:relative; }
+  svg.chart { width:100%; height:100%; }
+
+  /* Chart tooltip */
+  .tooltip { position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    background:rgba(30,30,30,0.92); border:1px solid #333; border-radius:12px;
+    padding:8px 16px; text-align:center; }
+  .tooltip-price { font-size:20px; font-weight:700; color:#FFD700; }
+  .tooltip-date { font-size:11px; color:#888; margin-top:2px; }
+
+  /* Stats row */
+  .stats { display:flex; gap:12px; padding: 16px 24px; }
+  .stat-card { flex:1; background:#111; border-radius:16px; padding:14px; }
+  .stat-label { font-size:11px; color:#666; text-transform:uppercase; letter-spacing:0.8px; }
+  .stat-value { font-size:18px; font-weight:700; color:#fff; margin-top:4px; }
+  .stat-sub { font-size:11px; color:#888; margin-top:2px; }
+  .green { color:#34C759 !important; }
+  .gold { color:#FFD700 !important; }
+
+  /* Marketing overlay */
+  .marketing { position:absolute; bottom:0; left:0; right:0; 
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%);
+    padding: 40px 32px 60px; text-align:center; }
+  .marketing-headline { font-size:34px; font-weight:800; color:#fff; line-height:1.15; letter-spacing:-0.5px; }
+  .marketing-headline span { color:#FFD700; }
+  .marketing-sub { font-size:16px; color:#aaa; margin-top:10px; font-weight:400; line-height:1.5; }
+
+  /* Tab bar */
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:82px;
+    background:rgba(10,10,10,0.96); border-top:1px solid #222;
+    display:flex; align-items:center; justify-content:space-around; padding: 0 10px 20px; }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .tab-icon { font-size:22px; }
+  .tab-label { font-size:10px; color:#888; font-weight:500; }
+  .tab.active .tab-label { color:#FFD700; }
+  .tab.active .tab-icon { filter: saturate(10) hue-rotate(-10deg); }
+</style>
+</head>
+<body>
+
+<!-- Status Bar -->
+<div class="status">
+  <span>9:41</span>
+  <span>●●●</span>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">Gold</div>
+      <div class="header-subtitle">XAU / USD · Live</div>
+    </div>
+    <div style="width:36px;height:36px;border-radius:18px;background:#1C1C1E;display:flex;align-items:center;justify-content:center;font-size:18px;">🔔</div>
+  </div>
+</div>
+
+<!-- Price block -->
+<div class="price-block">
+  <div class="price-main">$3,152.40</div>
+  <div class="price-change">
+    <span style="color:#34C759;font-size:14px;">▲</span>
+    <span class="price-change-text">+$34.20 &nbsp;(+1.10%)</span>
+    <span style="font-size:12px;color:#666;margin-left:4px;">Today</span>
+  </div>
+</div>
+
+<!-- Range pills -->
+<div class="range-pills">
+  <div class="pill active">1D</div>
+  <div class="pill">1W</div>
+  <div class="pill">1M</div>
+  <div class="pill">3M</div>
+  <div class="pill">1Y</div>
+  <div class="pill">5Y</div>
+</div>
+
+<!-- Chart -->
+<div class="chart-area">
+  <svg class="chart" viewBox="0 0 400 220" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#FFD700" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <!-- Gold area fill -->
+    <path d="M0,140 C20,135 35,145 55,130 C75,115 90,120 110,108 C130,96 145,110 165,98 C185,86 200,92 220,80 C240,68 255,75 275,62 C295,49 310,58 330,48 C350,38 365,44 385,34 L400,30 L400,220 L0,220 Z"
+      fill="url(#chartGrad)"/>
+    <!-- Gold line -->
+    <path d="M0,140 C20,135 35,145 55,130 C75,115 90,120 110,108 C130,96 145,110 165,98 C185,86 200,92 220,80 C240,68 255,75 275,62 C295,49 310,58 330,48 C350,38 365,44 385,34 L400,30"
+      fill="none" stroke="#FFD700" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Scrub dot -->
+    <circle cx="280" cy="60" r="6" fill="#FFD700"/>
+    <line x1="280" y1="60" x2="280" y2="220" stroke="#FFD700" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
+  </svg>
+
+  <!-- Tooltip -->
+  <div class="tooltip">
+    <div class="tooltip-price">$3,148.70</div>
+    <div class="tooltip-date">Mar 12 · 11:24 AM</div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat-card">
+    <div class="stat-label">52W High</div>
+    <div class="stat-value gold">$3,220</div>
+    <div class="stat-sub">Jan 29, 2026</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">52W Low</div>
+    <div class="stat-value">$2,286</div>
+    <div class="stat-sub">Mar 14, 2025</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">YTD Return</div>
+    <div class="stat-value green">+13.2%</div>
+    <div class="stat-sub">Since Jan 1</div>
+  </div>
+</div>
+
+<!-- Marketing overlay -->
+<div class="marketing">
+  <div class="marketing-headline">Live <span>Gold Prices</span><br/>at your fingertips</div>
+  <div class="marketing-sub">Interactive charts. Real-time XAU/USD data.<br/>Scrub through any time range.</div>
+</div>
+
+<!-- Tab bar -->
+<div class="tabbar">
+  <div class="tab active">
+    <div class="tab-icon">📈</div>
+    <div class="tab-label" style="color:#FFD700;">Gold</div>
+  </div>
+  <div class="tab">
+    <div class="tab-icon">💼</div>
+    <div class="tab-label">Portfolio</div>
+  </div>
+  <div class="tab">
+    <div class="tab-icon">⭐</div>
+    <div class="tab-label">Watchlist</div>
+  </div>
+  <div class="tab">
+    <div class="tab-icon">👤</div>
+    <div class="tab-label">Profile</div>
+  </div>
+</div>
+
+</body>
+</html>

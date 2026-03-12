@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "version": ">= 14.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "ios": {
+        "credentialsSource": "remote"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "mousabeidas@gmail.com",
+        "appleTeamId": "P2TSL4VJ5H",
+        "language": "en-US",
+        "metadataPath": "./store-assets/APPSTORE_SUBMISSION_GUIDE.md"
+      }
+    }
+  }
+}

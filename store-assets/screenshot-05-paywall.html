@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Screenshot 5 – Go Pro</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width: 430px; height: 932px;
+    background: #000;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #fff;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Top hero */
+  .hero { padding:60px 32px 32px; text-align:center;
+    background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,215,0,0.12) 0%, transparent 70%); }
+  .hero-icon { font-size:60px; margin-bottom:16px; }
+  .hero-badge { display:inline-flex; align-items:center; gap:6px;
+    background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.3);
+    border-radius:20px; padding:6px 16px; margin-bottom:20px;
+    font-size:12px; font-weight:700; color:#FFD700; letter-spacing:1px; text-transform:uppercase; }
+  .hero-title { font-size:38px; font-weight:800; letter-spacing:-1px; line-height:1.1; margin-bottom:12px; }
+  .hero-title span { color:#FFD700; }
+  .hero-sub { font-size:15px; color:#aaa; line-height:1.6; }
+
+  /* Features list */
+  .features { padding:24px 32px; display:flex; flex-direction:column; gap:14px; }
+  .feature { display:flex; align-items:center; gap:14px; }
+  .feature-icon { width:38px; height:38px; border-radius:10px; background:#1A1400;
+    display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .feature-text { font-size:15px; font-weight:500; }
+  .feature-sub { font-size:12px; color:#888; margin-top:1px; }
+  .check { color:#FFD700; font-weight:700; font-size:16px; margin-left:auto; }
+
+  /* Plan cards */
+  .plans { padding:0 20px 16px; display:flex; gap:10px; }
+  .plan { flex:1; border-radius:18px; padding:16px 12px; text-align:center; border:2px solid #1C1C1E;
+    background:#0D0D0D; }
+  .plan.featured { border-color:#FFD700; background:linear-gradient(160deg,#1A1400,#0D0A00); }
+  .plan-badge { font-size:10px; font-weight:700; color:#000; background:#FFD700;
+    border-radius:6px; padding:2px 8px; display:inline-block; margin-bottom:8px; }
+  .plan-name { font-size:13px; font-weight:700; color:#888; margin-bottom:6px; }
+  .plan.featured .plan-name { color:#FFD700; }
+  .plan-price { font-size:24px; font-weight:800; letter-spacing:-0.5px; }
+  .plan-period { font-size:11px; color:#888; margin-top:2px; }
+
+  /* CTA */
+  .cta { margin:0 20px 12px; background:#FFD700; border-radius:18px; padding:18px;
+    text-align:center; font-size:18px; font-weight:800; color:#000;
+    box-shadow:0 8px 32px rgba(255,215,0,0.35); }
+  .restore { text-align:center; font-size:12px; color:#666; padding-bottom:100px; }
+
+  /* Marketing overlay */
+  .marketing { position:absolute; bottom:82px; left:0; right:0;
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%);
+    padding:30px 32px 16px; text-align:center; }
+  .marketing-headline { font-size:28px; font-weight:800; line-height:1.2; letter-spacing:-0.5px; }
+  .marketing-headline span { color:#FFD700; }
+  .marketing-sub { font-size:14px; color:#aaa; margin-top:8px; line-height:1.5; }
+
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:82px;
+    background:rgba(10,10,10,0.96); border-top:1px solid #222;
+    display:flex; align-items:center; justify-content:space-around; padding:0 10px 20px; }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .tab-icon { font-size:22px; }
+  .tab-label { font-size:10px; color:#888; font-weight:500; }
+</style>
+</head>
+<body>
+
+<!-- Status bar -->
+<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 28px 0;font-size:15px;font-weight:600;">
+  <span>9:41</span><span>●●●</span>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-icon">✦</div>
+  <div class="hero-badge">✦ Gold Pro</div>
+  <div class="hero-title">Unlock <span>unlimited</span><br/>gold tracking</div>
+  <div class="hero-sub">Everything you need to manage<br/>your physical gold portfolio.</div>
+</div>
+
+<!-- Features -->
+<div class="features">
+  <div class="feature">
+    <div class="feature-icon">∞</div>
+    <div><div class="feature-text">Unlimited holdings</div><div class="feature-sub">Free tier: 2 items only</div></div>
+    <div class="check">✓</div>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">📊</div>
+    <div><div class="feature-text">Advanced analytics</div><div class="feature-sub">Allocation charts · year-by-year</div></div>
+    <div class="check">✓</div>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">🔔</div>
+    <div><div class="feature-text">Price alerts</div><div class="feature-sub">Notify me when gold hits $X</div></div>
+    <div class="check">✓</div>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">☁️</div>
+    <div><div class="feature-text">iCloud backup</div><div class="feature-sub">Your portfolio, always safe</div></div>
+    <div class="check">✓</div>
+  </div>
+</div>
+
+<!-- Plans -->
+<div class="plans">
+  <div class="plan">
+    <div class="plan-name">Monthly</div>
+    <div class="plan-price">$4.99</div>
+    <div class="plan-period">per month</div>
+  </div>
+  <div class="plan featured">
+    <div class="plan-badge">Best Value</div>
+    <div class="plan-name">Annual</div>
+    <div class="plan-price">$29.99</div>
+    <div class="plan-period">per year · save 50%</div>
+  </div>
+  <div class="plan">
+    <div class="plan-name">Lifetime</div>
+    <div class="plan-price">$79.99</div>
+    <div class="plan-period">one time</div>
+  </div>
+</div>
+
+<div class="cta">Start Free Trial</div>
+<div class="restore">Restore Purchase · Terms · Privacy</div>
+
+<!-- Marketing overlay -->
+<div class="marketing">
+  <div class="marketing-headline"><span>Pro</span> unlocks everything<br/>from $4.99/mo</div>
+  <div class="marketing-sub">7-day free trial · Cancel anytime · Annual saves 50%</div>
+</div>
+
+<div class="tabbar">
+  <div class="tab"><div class="tab-icon">📈</div><div class="tab-label">Gold</div></div>
+  <div class="tab"><div class="tab-icon">💼</div><div class="tab-label">Portfolio</div></div>
+  <div class="tab"><div class="tab-icon">⭐</div><div class="tab-label">Watchlist</div></div>
+  <div class="tab"><div class="tab-icon">👤</div><div class="tab-label" style="color:#FFD700;">Profile</div></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- App icon: Gold ring on dark background, Apple-style rounded square -->
+  <!-- Black background -->
+  <rect width="1024" height="1024" fill="#000000" rx="224" ry="224"/>
+
+  <!-- Subtle radial glow behind the ring -->
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#FFD700" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ringGrad" cx="38%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#FFE566"/>
+      <stop offset="45%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#B8960C"/>
+    </radialGradient>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="22" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Glow layer -->
+  <circle cx="512" cy="512" r="480" fill="url(#glow)"/>
+
+  <!-- Gold ring (thick circle outline) -->
+  <circle
+    cx="512"
+    cy="512"
+    r="300"
+    fill="none"
+    stroke="url(#ringGrad)"
+    stroke-width="72"
+    filter="url(#softGlow)"
+  />
+
+  <!-- Subtle highlight arc on the ring (top-left) -->
+  <path
+    d="M 272,440 A 300,300 0 0,1 440,272"
+    fill="none"
+    stroke="#FFF8C0"
+    stroke-width="20"
+    stroke-linecap="round"
+    opacity="0.35"
+  />
+</svg>

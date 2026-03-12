@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Screenshot 3 – Analytics</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width: 430px; height: 932px;
+    background: #000;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #fff;
+    overflow: hidden;
+    position: relative;
+  }
+  .status { display:flex; justify-content:space-between; align-items:center;
+    padding: 16px 28px 0; font-size:15px; font-weight:600; }
+  .header { padding: 18px 24px 16px; display:flex; justify-content:space-between; align-items:center; }
+  .header-title { font-size:28px; font-weight:700; }
+
+  /* Big number cards */
+  .cards { display:flex; flex-direction:column; gap:12px; padding:0 20px 16px; }
+  .card-row { display:flex; gap:12px; }
+  .card { flex:1; border-radius:20px; padding:18px 18px 16px; }
+  .card.dark { background:#111; }
+  .card.gold-tint { background:linear-gradient(135deg,#1A1400,#0C0A00); border:1px solid #3A2E00; }
+  .card-label { font-size:11px; color:#666; text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+  .card-value { font-size:28px; font-weight:800; letter-spacing:-0.8px; margin:8px 0 4px; }
+  .card-sub { font-size:12px; color:#888; }
+  .green { color:#34C759; }
+  .red { color:#FF453A; }
+  .gold { color:#FFD700; }
+
+  /* Allocation donut */
+  .alloc-section { padding:0 20px 14px; }
+  .alloc-title { font-size:13px; color:#888; text-transform:uppercase; letter-spacing:1px;
+    font-weight:600; margin-bottom:12px; }
+  .donut-row { display:flex; align-items:center; gap:24px; }
+  .donut-svg { flex-shrink:0; }
+  .legend { display:flex; flex-direction:column; gap:10px; }
+  .legend-item { display:flex; align-items:center; gap:10px; }
+  .legend-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+  .legend-text { font-size:14px; font-weight:500; }
+  .legend-pct { font-size:13px; color:#888; margin-left:auto; }
+
+  /* Performance bars */
+  .perf-section { padding:0 20px 16px; }
+  .perf-title { font-size:13px; color:#888; text-transform:uppercase; letter-spacing:1px;
+    font-weight:600; margin-bottom:12px; }
+  .perf-item { margin-bottom:12px; }
+  .perf-header { display:flex; justify-content:space-between; margin-bottom:5px;
+    font-size:13px; font-weight:500; }
+  .perf-bar-bg { height:6px; background:#1C1C1E; border-radius:3px; }
+  .perf-bar { height:6px; border-radius:3px; }
+
+  /* Marketing overlay */
+  .marketing { position:absolute; bottom:0; left:0; right:0;
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 50%, transparent 100%);
+    padding:40px 32px 88px; text-align:center; }
+  .marketing-headline { font-size:34px; font-weight:800; line-height:1.15; letter-spacing:-0.5px; }
+  .marketing-headline span { color:#FFD700; }
+  .marketing-sub { font-size:16px; color:#aaa; margin-top:10px; line-height:1.5; }
+
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:82px;
+    background:rgba(10,10,10,0.96); border-top:1px solid #222;
+    display:flex; align-items:center; justify-content:space-around; padding:0 10px 20px; }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .tab-icon { font-size:22px; }
+  .tab-label { font-size:10px; color:#888; font-weight:500; }
+</style>
+</head>
+<body>
+
+<div class="status"><span>9:41</span><span>●●●</span></div>
+<div class="header"><div class="header-title">Analytics</div></div>
+
+<div class="cards">
+  <!-- Row 1 -->
+  <div class="card-row">
+    <div class="card gold-tint">
+      <div class="card-label">Total Gain</div>
+      <div class="card-value green">+$3,218</div>
+      <div class="card-sub">All time</div>
+    </div>
+    <div class="card dark">
+      <div class="card-label">Avg Cost</div>
+      <div class="card-value gold">$2,794</div>
+      <div class="card-sub">Per troy oz</div>
+    </div>
+  </div>
+  <!-- Row 2 -->
+  <div class="card-row">
+    <div class="card dark">
+      <div class="card-label">Best Hold</div>
+      <div class="card-value green">+28.9%</div>
+      <div class="card-sub">Gold Eagle '23</div>
+    </div>
+    <div class="card dark">
+      <div class="card-label">Unrealised</div>
+      <div class="card-value gold">$28,643</div>
+      <div class="card-sub">Current value</div>
+    </div>
+  </div>
+</div>
+
+<!-- Allocation donut -->
+<div class="alloc-section">
+  <div class="alloc-title">Allocation by Type</div>
+  <div class="donut-row">
+    <svg class="donut-svg" width="110" height="110" viewBox="0 0 110 110">
+      <!-- PAMP bars 33% -->
+      <circle cx="55" cy="55" r="42" fill="none" stroke="#FFD700" stroke-width="18"
+        stroke-dasharray="88 176" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
+      <!-- Eagles 22% -->
+      <circle cx="55" cy="55" r="42" fill="none" stroke="#FFB300" stroke-width="18"
+        stroke-dasharray="58 176" stroke-dashoffset="-88" transform="rotate(-90 55 55)"/>
+      <!-- Krugerrand 11% -->
+      <circle cx="55" cy="55" r="42" fill="none" stroke="#FF8C00" stroke-width="18"
+        stroke-dasharray="29 176" stroke-dashoffset="-146" transform="rotate(-90 55 55)"/>
+      <!-- Maple Leaf 34% -->
+      <circle cx="55" cy="55" r="42" fill="none" stroke="#8B6914" stroke-width="18"
+        stroke-dasharray="90 176" stroke-dashoffset="-175" transform="rotate(-90 55 55)"/>
+      <circle cx="55" cy="55" r="28" fill="#000"/>
+      <text x="55" y="51" text-anchor="middle" fill="#FFD700" font-size="13" font-weight="700" font-family="Inter">9.12</text>
+      <text x="55" y="64" text-anchor="middle" fill="#888" font-size="9" font-family="Inter">troy oz</text>
+    </svg>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#FFD700"></div>
+        <div class="legend-text">PAMP Bars</div>
+        <div class="legend-pct">33%</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#FFB300"></div>
+        <div class="legend-text">Gold Eagles</div>
+        <div class="legend-pct">22%</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#FF8C00"></div>
+        <div class="legend-text">Krugerrand</div>
+        <div class="legend-pct">11%</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#8B6914"></div>
+        <div class="legend-text">Maple Leaf</div>
+        <div class="legend-pct">34%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Performance by year -->
+<div class="perf-section">
+  <div class="perf-title">Performance by Year</div>
+  <div class="perf-item">
+    <div class="perf-header"><span>2026 YTD</span><span class="green">+13.2%</span></div>
+    <div class="perf-bar-bg"><div class="perf-bar" style="width:66%;background:#34C759"></div></div>
+  </div>
+  <div class="perf-item">
+    <div class="perf-header"><span>2025</span><span class="green">+26.8%</span></div>
+    <div class="perf-bar-bg"><div class="perf-bar" style="width:88%;background:#FFD700"></div></div>
+  </div>
+  <div class="perf-item">
+    <div class="perf-header"><span>2024</span><span class="green">+27.2%</span></div>
+    <div class="perf-bar-bg"><div class="perf-bar" style="width:90%;background:#FFB300"></div></div>
+  </div>
+  <div class="perf-item">
+    <div class="perf-header"><span>2023</span><span class="green">+13.1%</span></div>
+    <div class="perf-bar-bg"><div class="perf-bar" style="width:44%;background:#FF8C00"></div></div>
+  </div>
+</div>
+
+<!-- Marketing overlay -->
+<div class="marketing">
+  <div class="marketing-headline">Deep <span>Analytics</span><br/>for every holding</div>
+  <div class="marketing-sub">Gain/loss by item. Allocation breakdown.<br/>Year-by-year performance history.</div>
+</div>
+
+<div class="tabbar">
+  <div class="tab"><div class="tab-icon">📈</div><div class="tab-label">Gold</div></div>
+  <div class="tab"><div class="tab-icon">💼</div><div class="tab-label" style="color:#FFD700;">Portfolio</div></div>
+  <div class="tab"><div class="tab-icon">⭐</div><div class="tab-label">Watchlist</div></div>
+  <div class="tab"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
+</div>
+
+</body>
+</html>

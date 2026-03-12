@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Screenshot 2 – Portfolio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width: 430px; height: 932px;
+    background: #000;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #fff;
+    overflow: hidden;
+    position: relative;
+  }
+  .status { display:flex; justify-content:space-between; align-items:center;
+    padding: 16px 28px 0; font-size:15px; font-weight:600; color:#fff; }
+  .header { padding: 18px 24px 16px; }
+  .header-title { font-size:28px; font-weight:700; }
+
+  /* Portfolio summary */
+  .summary { margin: 0 20px 16px; background: linear-gradient(135deg,#1A1500,#0D0D00);
+    border: 1px solid #3A3000; border-radius:20px; padding:20px 22px; }
+  .summary-label { font-size:12px; color:#888; text-transform:uppercase; letter-spacing:1px; }
+  .summary-value { font-size:44px; font-weight:700; letter-spacing:-1.5px; margin:6px 0; }
+  .summary-change { display:flex; align-items:center; gap:8px; }
+  .badge { background:#1A2E1A; border-radius:8px; padding:4px 10px;
+    font-size:13px; font-weight:600; color:#34C759; }
+  .summary-weight { font-size:13px; color:#888; margin-top:8px; }
+
+  /* Holdings list */
+  .section-title { padding: 0 24px 10px; font-size:13px; color:#888;
+    text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+  .holding { display:flex; align-items:center; gap:14px; padding:14px 20px;
+    border-bottom:1px solid #111; }
+  .holding-photo { width:54px; height:54px; border-radius:12px; object-fit:cover;
+    background:#1C1C1E; overflow:hidden; display:flex; align-items:center; justify-content:center;
+    font-size:26px; border:1px solid #2A2A2A; flex-shrink:0; }
+  .holding-info { flex:1; }
+  .holding-name { font-size:16px; font-weight:600; }
+  .holding-meta { font-size:12px; color:#888; margin-top:3px; }
+  .holding-right { text-align:right; }
+  .holding-value { font-size:16px; font-weight:700; }
+  .holding-gain { font-size:13px; font-weight:600; color:#34C759; margin-top:2px; }
+  .holding-loss { color:#FF453A; }
+
+  /* Add button */
+  .add-btn { margin: 16px 20px 0; background:#FFD700; border-radius:16px;
+    padding:16px; text-align:center; font-size:17px; font-weight:700; color:#000; }
+
+  /* Marketing overlay */
+  .marketing { position:absolute; bottom:0; left:0; right:0;
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 55%, transparent 100%);
+    padding: 40px 32px 88px; text-align:center; }
+  .marketing-headline { font-size:34px; font-weight:800; color:#fff; line-height:1.15; letter-spacing:-0.5px; }
+  .marketing-headline span { color:#FFD700; }
+  .marketing-sub { font-size:16px; color:#aaa; margin-top:10px; line-height:1.5; }
+
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:82px;
+    background:rgba(10,10,10,0.96); border-top:1px solid #222;
+    display:flex; align-items:center; justify-content:space-around; padding: 0 10px 20px; }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .tab-icon { font-size:22px; }
+  .tab-label { font-size:10px; color:#888; font-weight:500; }
+</style>
+</head>
+<body>
+
+<div class="status"><span>9:41</span><span>●●●</span></div>
+
+<div class="header">
+  <div class="header-title">Portfolio</div>
+</div>
+
+<!-- Summary card -->
+<div class="summary">
+  <div class="summary-label">Total Value</div>
+  <div class="summary-value" style="color:#FFD700;">$28,643</div>
+  <div class="summary-change">
+    <div class="badge">+$3,218 &nbsp;+12.6%</div>
+    <span style="font-size:13px;color:#666;">all time</span>
+  </div>
+  <div class="summary-weight">9.12 troy oz · 283.6 g total weight</div>
+</div>
+
+<!-- Holdings list -->
+<div class="section-title">Holdings</div>
+
+<div class="holding">
+  <div class="holding-photo">🏅</div>
+  <div class="holding-info">
+    <div class="holding-name">1oz Gold Bar · PAMP</div>
+    <div class="holding-meta">3 bars · 93.3g · Bought Feb 2024</div>
+  </div>
+  <div class="holding-right">
+    <div class="holding-value">$9,457</div>
+    <div class="holding-gain">+$1,140</div>
+  </div>
+</div>
+
+<div class="holding">
+  <div class="holding-photo">🪙</div>
+  <div class="holding-info">
+    <div class="holding-name">American Gold Eagle</div>
+    <div class="holding-meta">2 coins · 67.5g · Bought Jun 2023</div>
+  </div>
+  <div class="holding-right">
+    <div class="holding-value">$6,304</div>
+    <div class="holding-gain">+$1,822</div>
+  </div>
+</div>
+
+<div class="holding">
+  <div class="holding-photo">🏆</div>
+  <div class="holding-info">
+    <div class="holding-name">Krugerrand 1oz</div>
+    <div class="holding-meta">1 coin · 33.9g · Bought Nov 2022</div>
+  </div>
+  <div class="holding-right">
+    <div class="holding-value">$3,152</div>
+    <div class="holding-gain">+$756</div>
+  </div>
+</div>
+
+<div class="holding">
+  <div class="holding-photo">⚜️</div>
+  <div class="holding-info">
+    <div class="holding-name">Gold Maple Leaf</div>
+    <div class="holding-meta">4 coins · 124.4g · Bought Aug 2024</div>
+  </div>
+  <div class="holding-right">
+    <div class="holding-value">$9,730</div>
+    <div class="holding-gain" style="color:#FF453A;">−$500</div>
+  </div>
+</div>
+
+<div class="add-btn">+ Add Holding</div>
+
+<!-- Marketing overlay -->
+<div class="marketing">
+  <div class="marketing-headline">Track your<br/><span>Gold Portfolio</span></div>
+  <div class="marketing-sub">Photo, weight, and date for every bar and coin.<br/>Live valuations updated in real time.</div>
+</div>
+
+<div class="tabbar">
+  <div class="tab"><div class="tab-icon">📈</div><div class="tab-label">Gold</div></div>
+  <div class="tab"><div class="tab-icon">💼</div><div class="tab-label" style="color:#FFD700;">Portfolio</div></div>
+  <div class="tab"><div class="tab-icon">⭐</div><div class="tab-label">Watchlist</div></div>
+  <div class="tab"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
+</div>
+
+</body>
+</html>
