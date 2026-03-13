@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/gold-tracker",
+  "name": "gold-tracker",
   "version": "0.0.0",
   "private": true,
   "main": "expo-router/entry",
