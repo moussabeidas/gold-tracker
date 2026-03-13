@@ -89,16 +89,26 @@ jobs:
         id: xcode
         run: |
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
-          SCHEME=$(find ios -name "*.xcscheme" 2>/dev/null | head -1 | xargs basename 2>/dev/null | sed 's/\.xcscheme//' || echo "")
           if [ -z "$WORKSPACE" ]; then
             echo "Error: Could not find xcworkspace after pod install"
             ls -la ios/
             exit 1
           fi
+          # Derive scheme from workspace name (they match for the main app)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          # Verify the scheme exists in the xcodeproj (not from Pods)
+          PROJ=$(find ios -name "*.xcodeproj" -maxdepth 1 2>/dev/null | head -1)
+          if [ -n "$PROJ" ]; then
+            PROJ_SCHEME=$(find "$PROJ" -name "*.xcscheme" -path "*/xcshareddata/*" 2>/dev/null | head -1 | xargs basename 2>/dev/null | sed 's/\.xcscheme//')
+            if [ -n "$PROJ_SCHEME" ]; then
+              SCHEME="$PROJ_SCHEME"
+            fi
+          fi
           echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
           echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
           echo "Workspace: $WORKSPACE"
           echo "Scheme: $SCHEME"
+          echo "Project: $PROJ"
 
       - name: Create ExportOptions.plist
         run: |
@@ -108,11 +118,9 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store</string>
+            <string>app-store-connect</string>
             <key>teamID</key>
             <string>P2TSL4VJ5H</string>
-            <key>uploadBitcode</key>
-            <false/>
             <key>uploadSymbols</key>
             <true/>
             <key>signingStyle</key>
