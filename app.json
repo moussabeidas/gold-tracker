@@ -16,7 +16,7 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "bundleIdentifier": "com.goldtracker.app",
+      "bundleIdentifier": "com.mbeidas.goldtracker",
       "buildNumber": "1",
       "supportsTablet": false,
       "requireFullScreen": true,
