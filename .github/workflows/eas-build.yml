@@ -80,25 +80,25 @@ jobs:
       - name: Run Expo Prebuild
         run: npx expo prebuild --platform ios --no-install
 
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install --repo-update
+
       - name: Discover Xcode workspace and scheme
         id: xcode
         run: |
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
           SCHEME=$(find ios -name "*.xcscheme" 2>/dev/null | head -1 | xargs basename 2>/dev/null | sed 's/\.xcscheme//' || echo "")
           if [ -z "$WORKSPACE" ]; then
-            echo "Error: Could not find xcworkspace"
-            ls ios/
+            echo "Error: Could not find xcworkspace after pod install"
+            ls -la ios/
             exit 1
           fi
           echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
           echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
           echo "Workspace: $WORKSPACE"
           echo "Scheme: $SCHEME"
-
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios
-          pod install --repo-update
 
       - name: Create ExportOptions.plist
         run: |
