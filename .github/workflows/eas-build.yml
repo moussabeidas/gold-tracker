@@ -136,6 +136,7 @@ jobs:
 
       - name: Archive iOS app with xcodebuild
         run: |
+          set -o pipefail
           xcodebuild archive \
             -workspace "ios/${{ steps.xcode.outputs.workspace }}" \
             -scheme "${{ steps.xcode.outputs.scheme }}" \
@@ -147,7 +148,9 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="Gold_Tracker_Production" \
             DEVELOPMENT_TEAM=P2TSL4VJ5H \
             ONLY_ACTIVE_ARCH=NO \
-            | xcpretty --color || xcodebuild -workspace "ios/${{ steps.xcode.outputs.workspace }}" -scheme "${{ steps.xcode.outputs.scheme }}" -configuration Release -archivePath "$RUNNER_TEMP/GoldTracker.xcarchive" -destination "generic/platform=iOS" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="Gold_Tracker_Production" DEVELOPMENT_TEAM=P2TSL4VJ5H ONLY_ACTIVE_ARCH=NO
+            2>&1 | tail -60
+          echo "Archive exit code: $?"
+          ls -la "$RUNNER_TEMP/" | grep xcarchive || echo "WARNING: xcarchive not found in RUNNER_TEMP"
 
       - name: Export IPA from archive
         run: |
