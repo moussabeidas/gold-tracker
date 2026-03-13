@@ -78,7 +78,7 @@ jobs:
           echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
 
       - name: Run Expo Prebuild
-        run: npx expo prebuild --platform ios --skip-dependency-update --no-install
+        run: npx expo prebuild --platform ios --no-install
 
       - name: Discover Xcode workspace and scheme
         id: xcode
