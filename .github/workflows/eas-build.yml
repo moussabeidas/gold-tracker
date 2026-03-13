@@ -137,6 +137,7 @@ jobs:
       - name: Archive iOS app with xcodebuild
         run: |
           set -o pipefail
+          ARCHIVE_LOG="$RUNNER_TEMP/xcodebuild_archive.log"
           xcodebuild archive \
             -workspace "ios/${{ steps.xcode.outputs.workspace }}" \
             -scheme "${{ steps.xcode.outputs.scheme }}" \
@@ -148,9 +149,14 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="Gold_Tracker_Production" \
             DEVELOPMENT_TEAM=P2TSL4VJ5H \
             ONLY_ACTIVE_ARCH=NO \
-            2>&1 | tail -60
-          echo "Archive exit code: $?"
-          ls -la "$RUNNER_TEMP/" | grep xcarchive || echo "WARNING: xcarchive not found in RUNNER_TEMP"
+            2>&1 | tee "$ARCHIVE_LOG" | grep -E "error:|CodeSign|signing|provisioning|ARCHIVE (FAIL|SUCC)|BUILD (FAIL|SUCC)|warning.*CODE_SIGN|warning.*provision" || true
+          XCODE_EXIT=${PIPESTATUS[0]}
+          if [ "$XCODE_EXIT" -ne 0 ]; then
+            echo "=== LAST 30 LINES OF ARCHIVE LOG ==="
+            tail -30 "$ARCHIVE_LOG"
+            exit "$XCODE_EXIT"
+          fi
+          ls -la "$RUNNER_TEMP/" | grep xcarchive
 
       - name: Export IPA from archive
         run: |
