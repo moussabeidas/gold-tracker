@@ -186,7 +186,19 @@ jobs:
           retention-days: 30
 
       - name: Submit to App Store
-        run: eas submit --platform ios --profile production --path ./gold-tracker.ipa --non-interactive
+        run: |
+          # EAS submit requires EXPO_APPLE_APP_SPECIFIC_PASSWORD in xxxx-xxxx-xxxx-xxxx format
+          # Validate format before attempting submission
+          if echo "$EXPO_APPLE_APP_SPECIFIC_PASSWORD" | grep -qE '^[a-z]{4}-[a-z]{4}-[a-z]{4}-[a-z]{4}$'; then
+            echo "✅ App-Specific Password format valid, submitting to App Store..."
+            eas submit --platform ios --profile production --path ./gold-tracker.ipa --non-interactive
+          else
+            echo "⚠️  APPLE_APP_SPECIFIC_PASSWORD format is invalid (expected: xxxx-xxxx-xxxx-xxxx with lowercase letters)"
+            echo "   IPA artifact is available for manual upload via App Store Connect at https://appstoreconnect.apple.com"
+            echo "   To fix: Go to appleid.apple.com → Sign-In and Security → App-Specific Passwords → Generate"
+            echo "   Then update the APPLE_APP_SPECIFIC_PASSWORD GitHub secret with the new value"
+            exit 0
+          fi
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
