@@ -70,9 +70,11 @@ jobs:
           echo "=== Available signing identities ==="
           security find-identity -v -p codesigning
 
-          # Install provisioning profile
+          # Install provisioning profile (must use UUID as filename for Xcode to find it)
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp store-assets/Gold_Tracker_Production.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          cp store-assets/Gold_Tracker_Production.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/0583bd09-06ea-497f-bcbe-16caf294016d.mobileprovision
+          echo "Installed provisioning profile:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
           echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
@@ -128,7 +130,7 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>com.mbeidas.goldtracker</key>
-              <string>Gold_Tracker_Production</string>
+              <string>Gold Tracker Production</string>
             </dict>
           </dict>
           </plist>
@@ -146,7 +148,7 @@ jobs:
             -destination "generic/platform=iOS" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="Gold_Tracker_Production" \
+            PROVISIONING_PROFILE_SPECIFIER="Gold Tracker Production" \
             DEVELOPMENT_TEAM=P2TSL4VJ5H \
             ONLY_ACTIVE_ARCH=NO \
             2>&1 | tee "$ARCHIVE_LOG" | grep -E "error:|CodeSign|signing|provisioning|ARCHIVE (FAIL|SUCC)|BUILD (FAIL|SUCC)|warning.*CODE_SIGN|warning.*provision" || true
