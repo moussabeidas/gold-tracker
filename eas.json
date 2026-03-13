@@ -19,7 +19,7 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "credentialsSource": "remote"
+        "credentialsSource": "local"
       }
     }
   },
