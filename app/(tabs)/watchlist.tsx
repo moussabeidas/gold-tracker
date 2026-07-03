@@ -9,8 +9,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { SymbolView } from "expo-symbols";
+import { SymbolView, type SFSymbol } from "expo-symbols";
 import Colors from "@/constants/colors";
+import { useGoldPrice } from "@/context/GoldPriceContext";
 import * as Haptics from "expo-haptics";
 
 interface MetalItem {
@@ -20,21 +21,11 @@ interface MetalItem {
   change: string;
   changePct: string;
   isPositive: boolean;
-  sfIcon?: string;
+  sfIcon?: SFSymbol;
   featherIcon: string;
 }
 
 const METALS: MetalItem[] = [
-  {
-    symbol: "XAU",
-    name: "Gold",
-    price: "$3,150.40",
-    change: "+$28.60",
-    changePct: "+0.92%",
-    isPositive: true,
-    sfIcon: "seal.fill",
-    featherIcon: "circle",
-  },
   {
     symbol: "XAG",
     name: "Silver",
@@ -115,7 +106,25 @@ function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
 
 export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
+  const { spotPrice, dayOpen } = useGoldPrice();
   const topPad = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
+
+  const goldChange = spotPrice - dayOpen;
+  const goldPct = dayOpen ? (goldChange / dayOpen) * 100 : 0;
+  const goldItem: MetalItem = {
+    symbol: "XAU",
+    name: "Gold",
+    price: `$${spotPrice.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`,
+    change: `${goldChange >= 0 ? "+" : "-"}$${Math.abs(goldChange).toFixed(2)}`,
+    changePct: `${goldChange >= 0 ? "+" : ""}${goldPct.toFixed(2)}%`,
+    isPositive: goldChange >= 0,
+    sfIcon: "seal.fill",
+    featherIcon: "circle",
+  };
+  const items = [goldItem, ...METALS];
 
   return (
     <ScrollView
@@ -135,8 +144,8 @@ export default function WatchlistScreen() {
       <Text style={styles.pageTitle}>Watchlist</Text>
 
       <View style={styles.card}>
-        {METALS.map((item, i) => (
-          <MetalRow key={item.symbol} item={item} isLast={i === METALS.length - 1} />
+        {items.map((item, i) => (
+          <MetalRow key={item.symbol} item={item} isLast={i === items.length - 1} />
         ))}
       </View>
 

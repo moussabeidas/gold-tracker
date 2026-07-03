@@ -59,8 +59,16 @@ export default function GoldScreen() {
   const [scrubIndex, setScrubIndex] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data, currentPrice, change, changePct, isPositive, isLoading } =
-    useGoldData(range);
+  const {
+    data,
+    currentPrice,
+    change,
+    changePct,
+    isPositive,
+    isLoading,
+    isLive,
+    scale,
+  } = useGoldData(range);
 
   const handleScrub = useCallback(
     (price: number | null, index: number | null) => {
@@ -105,12 +113,12 @@ export default function GoldScreen() {
     },
     {
       label: "52W High",
-      value: "$3,217.40",
+      value: `$${formatPrice(Math.max(3217.4 * scale, currentPrice))}`,
     },
   ];
 
   const statsRow3 = [
-    { label: "52W Low", value: "$2,164.40" },
+    { label: "52W Low", value: `$${formatPrice(2164.4 * scale)}` },
     { label: "Volume", value: "$148.2B" },
   ];
 
@@ -153,6 +161,7 @@ export default function GoldScreen() {
         changePct={changePct}
         isPositive={isPositive}
         scrubPrice={scrubPrice}
+        isLive={isLive}
       />
 
       <View style={styles.chartContainer}>

@@ -16,14 +16,12 @@ import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import Colors from "@/constants/colors";
+import { useGoldPrice, TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
 import { usePortfolio, GoldPurchase } from "@/context/PortfolioContext";
 import { useSubscription, FREE_LIMIT } from "@/context/SubscriptionContext";
 import { useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
-
-const GOLD_PRICE_PER_GRAM = 101.30;
-const TROY_OUNCE_GRAMS = 31.1035;
 
 function formatCurrency(n: number) {
   return n.toLocaleString("en-US", {
@@ -41,7 +39,8 @@ function PurchaseCard({
   index: number;
   onDelete: () => void;
 }) {
-  const currentValue = item.weightGrams * GOLD_PRICE_PER_GRAM;
+  const { pricePerGram } = useGoldPrice();
+  const currentValue = item.weightGrams * pricePerGram;
   const gain = currentValue - item.pricePaid;
   const gainPct = item.pricePaid ? (gain / item.pricePaid) * 100 : 0;
   const isPositive = gain >= 0;
@@ -133,6 +132,7 @@ export default function PortfolioScreen() {
   const { purchases, removePurchase, totalWeightGrams, totalInvested, isLoading } =
     usePortfolio();
   const { isPro, maxItems } = useSubscription();
+  const { pricePerGram } = useGoldPrice();
   const isIOS = Platform.OS === "ios";
 
   if (!isAuthenticated) {
@@ -140,7 +140,7 @@ export default function PortfolioScreen() {
   }
 
   const atLimit = !isPro && purchases.length >= FREE_LIMIT;
-  const currentTotalValue = totalWeightGrams * GOLD_PRICE_PER_GRAM;
+  const currentTotalValue = totalWeightGrams * pricePerGram;
   const totalGain = currentTotalValue - totalInvested;
   const totalGainPct = totalInvested ? (totalGain / totalInvested) * 100 : 0;
   const isGainPositive = totalGain >= 0;
