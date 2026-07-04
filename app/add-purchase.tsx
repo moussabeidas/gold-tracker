@@ -21,6 +21,7 @@ import Colors from "@/constants/colors";
 import { usePortfolio, GoldPurchase } from "@/context/PortfolioContext";
 import { TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
 import { fetchGoldPriceOnDate } from "@/lib/marketData";
+import { scanGoldImage } from "@/lib/goldVision";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -84,6 +85,45 @@ export default function AddPurchaseScreen() {
     date: string;
   } | null>(null);
   const [estimating, setEstimating] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanSummary, setScanSummary] = useState<string | null>(null);
+
+  // Read the stamps on the photographed bar/coin (on-device OCR) and
+  // prefill whatever the user hasn't typed yet — they review before saving.
+  const scanImage = async (uri: string) => {
+    setScanning(true);
+    setScanSummary(null);
+    const result = await scanGoldImage(uri);
+    setScanning(false);
+    if (!result) return;
+
+    const filled: string[] = [];
+    if (result.type) {
+      setType(result.type);
+    }
+    if (result.name) {
+      setName((prev) => {
+        if (prev.trim()) return prev;
+        filled.push(result.name!);
+        return result.name!;
+      });
+    }
+    if (result.weightGrams) {
+      setWeightGrams((prev) => {
+        if (prev.trim()) return prev;
+        filled.push(`${result.weightGrams}g`);
+        return String(result.weightGrams);
+      });
+    }
+    if (filled.length || result.type) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setScanSummary(
+        result.name
+          ? `Recognized: ${result.name}${result.purity ? ` · ${result.purity} fine` : ""}`
+          : "Details recognized from your photo"
+      );
+    }
+  };
 
   // Look up the real gold price on the purchase date and suggest the
   // market cost for the entered weight.
@@ -143,6 +183,7 @@ export default function AddPurchaseScreen() {
       });
       if (!galleryResult.canceled) {
         setImageUri(galleryResult.assets[0].uri);
+        scanImage(galleryResult.assets[0].uri);
       }
       return;
     }
@@ -160,6 +201,7 @@ export default function AddPurchaseScreen() {
           setImageLoading(false);
           if (!result.canceled) {
             setImageUri(result.assets[0].uri);
+            scanImage(result.assets[0].uri);
           }
         },
       },
@@ -174,6 +216,7 @@ export default function AddPurchaseScreen() {
           });
           if (!result.canceled) {
             setImageUri(result.assets[0].uri);
+            scanImage(result.assets[0].uri);
           }
         },
       },
@@ -288,6 +331,19 @@ export default function AddPurchaseScreen() {
               </>
             )}
           </Pressable>
+          {scanning ? (
+            <View style={styles.scanBanner}>
+              <ActivityIndicator size="small" color={Colors.dark.gold} />
+              <Text style={styles.scanText}>Reading your gold’s stamps…</Text>
+            </View>
+          ) : scanSummary ? (
+            <View style={styles.scanBanner}>
+              <Feather name="zap" size={13} color={Colors.dark.gold} />
+              <Text style={styles.scanText}>
+                {scanSummary} — review the details below
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.typeSection}>
@@ -448,6 +504,26 @@ const styles = StyleSheet.create({
   },
   photoSection: {
     alignItems: "center",
+    gap: 10,
+  },
+  scanBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: Colors.dark.goldFaint,
+    borderWidth: 1,
+    borderColor: "rgba(255,215,0,0.35)",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    maxWidth: 320,
+  },
+  scanText: {
+    flexShrink: 1,
+    fontSize: 12.5,
+    fontFamily: "Inter_500Medium",
+    color: Colors.dark.text,
+    lineHeight: 17,
   },
   photoButton: {
     width: 140,
