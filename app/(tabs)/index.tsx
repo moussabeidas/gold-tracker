@@ -161,6 +161,15 @@ export default function GoldScreen() {
       }
     >
       <FocusReveal offset={12}>
+      <Text style={styles.dateLabel}>
+        {new Date()
+          .toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          })
+          .toUpperCase()}
+      </Text>
       {scrubTime && (
         <View style={styles.scrubTimeContainer}>
           <Text style={styles.scrubTime}>{scrubTime}</Text>
@@ -230,6 +239,14 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
+  },
+  dateLabel: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.dark.textTertiary,
+    letterSpacing: 1.2,
+    paddingHorizontal: 20,
+    paddingBottom: 6,
   },
   scrubTimeContainer: {
     alignItems: "center",

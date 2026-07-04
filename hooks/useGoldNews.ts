@@ -7,6 +7,11 @@ import type { NewsArticle } from "@/components/NewsItem";
 const QUERY = "gold price";
 const TTL_MS = 10 * 60_000;
 
+// Keep the feed strictly about the gold market
+const RELEVANT = /\bgold\b|xau|bullion|precious metal/i;
+const NOISE =
+  /gold medal|golden state|gold cup|gold glove|golden globe|gold coast|golden retriever|olympic|gold rush(?! for)/i;
+
 let cache: { at: number; articles: NewsArticle[] } | null = null;
 
 function relativeTime(ms: number): string {
@@ -29,9 +34,13 @@ export function useGoldNews() {
     if (cache && Date.now() - cache.at < TTL_MS) return;
 
     let cancelled = false;
-    fetchNews(QUERY).then((stories) => {
+    fetchNews(QUERY, 14).then((stories) => {
       if (cancelled || !stories) return;
-      const mapped: NewsArticle[] = stories.map((s) => ({
+      const onTopic = stories.filter(
+        (s) => RELEVANT.test(s.title) && !NOISE.test(s.title)
+      );
+      const picked = (onTopic.length >= 3 ? onTopic : stories).slice(0, 8);
+      const mapped: NewsArticle[] = picked.map((s) => ({
         id: s.id,
         headline: s.title,
         source: s.publisher,

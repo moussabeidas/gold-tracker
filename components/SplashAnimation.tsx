@@ -128,7 +128,7 @@ export function SplashAnimation({ onFinish }: Props) {
 
       {/* App name + commodity label */}
       <Animated.View style={[styles.textContainer, textStyle]}>
-        <Text style={styles.appName}>Gold</Text>
+        <Text style={styles.appName}>Gold Pricer</Text>
         <Text style={styles.appSubtitle}>XAU / USD</Text>
       </Animated.View>
     </Animated.View>
@@ -175,15 +175,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
+  // System font = San Francisco on iOS
   appName: {
     fontSize: 34,
-    fontFamily: "Inter_700Bold",
+    fontWeight: "700",
     color: Colors.dark.text,
     letterSpacing: -0.5,
   },
   appSubtitle: {
     fontSize: 12,
-    fontFamily: "Inter_500Medium",
+    fontWeight: "500",
     color: Colors.dark.gold,
     letterSpacing: 3.5,
     textTransform: "uppercase",
