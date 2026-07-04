@@ -1,174 +1,160 @@
-import React, { useEffect, useRef } from "react";
-import {
-  Animated,
+import React, { useEffect } from "react";
+import { StyleSheet, View, Text, Image } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useDerivedValue,
+  withTiming,
+  withDelay,
+  withSequence,
+  withRepeat,
   Easing,
-  StyleSheet,
-  View,
-  Text,
-  Platform,
-} from "react-native";
+  interpolate,
+  runOnJS,
+} from "react-native-reanimated";
 import Colors from "@/constants/colors";
 
-const USE_NATIVE = Platform.OS !== "web";
-
-// The logo: a gold ring on a dark circular bg
-// Outer disc diameter
-const DISC = 160;
-// Ring (border) thickness
-const RING_BORDER = 8;
+const COIN = 224;
+const COIN_SOURCE = require("@/assets/images/splash-icon.png");
 
 interface Props {
   onFinish: () => void;
 }
 
-// One expanding sonar ring keyed off an Animated.Value 0→1
-function SonarRing({ anim }: { anim: Animated.Value }) {
-  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 3.6] });
-  const opacity = anim.interpolate({
-    inputRange: [0, 0.15, 0.7, 1],
-    outputRange: [0, 0.6, 0.25, 0],
-  });
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[styles.sonarRing, { opacity, transform: [{ scale }] }]}
-    />
-  );
-}
-
 export function SplashAnimation({ onFinish }: Props) {
-  // Logo entrance
-  const logoScale = useRef(new Animated.Value(0.55)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  // Logo micro-pulse
-  const pulse = useRef(new Animated.Value(1)).current;
-  // Sonar rings (3)
-  const ring1 = useRef(new Animated.Value(0)).current;
-  const ring2 = useRef(new Animated.Value(0)).current;
-  const ring3 = useRef(new Animated.Value(0)).current;
+  // 3D coin spin: three full turns decelerating to face-on
+  const rotY = useSharedValue(1080);
+  const coinScale = useSharedValue(0.35);
+  const coinOpacity = useSharedValue(0);
+  // Glow behind the coin
+  const glow = useSharedValue(0);
+  // Specular sweep across the face after the spin settles
+  const shineX = useSharedValue(-COIN * 1.2);
   // Text
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const textY = useRef(new Animated.Value(20)).current;
+  const textIn = useSharedValue(0);
   // Exit
-  const exitOpacity = useRef(new Animated.Value(1)).current;
+  const exitOpacity = useSharedValue(1);
 
   useEffect(() => {
-    // Phase 1 — logo springs into view
-    Animated.parallel([
-      Animated.spring(logoScale, {
-        toValue: 1,
-        friction: 5,
-        tension: 85,
-        useNativeDriver: USE_NATIVE,
-      }),
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 300,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: USE_NATIVE,
-      }),
-    ]).start();
+    coinOpacity.value = withTiming(1, { duration: 260 });
+    coinScale.value = withTiming(1, {
+      duration: 1500,
+      easing: Easing.out(Easing.cubic),
+    });
+    rotY.value = withTiming(
+      0,
+      { duration: 1700, easing: Easing.out(Easing.cubic) },
+      (finished) => {
+        if (finished) {
+          runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+        }
+      }
+    );
 
-    // Phase 2 — micro-pulse after spring settles
-    setTimeout(() => {
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1.07,
-          duration: 180,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: USE_NATIVE,
-        }),
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 220,
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: USE_NATIVE,
-        }),
-      ]).start();
-    }, 380);
+    // Glow breathes in as the coin lands, then pulses gently
+    glow.value = withDelay(
+      900,
+      withSequence(
+        withTiming(1, { duration: 700, easing: Easing.out(Easing.quad) }),
+        withRepeat(
+          withSequence(
+            withTiming(0.72, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
+            withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) })
+          ),
+          -1
+        )
+      )
+    );
 
-    // Phase 3 — sonar rings fire in sequence
-    const fireRing = (anim: Animated.Value, delay: number) => {
-      setTimeout(() => {
-        anim.setValue(0);
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 1300,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: USE_NATIVE,
-        }).start();
-      }, delay);
-    };
-    fireRing(ring1, 250);
-    fireRing(ring2, 580);
-    fireRing(ring3, 910);
+    // Light sweep right after the coin settles
+    shineX.value = withDelay(
+      1750,
+      withTiming(COIN * 1.2, { duration: 620, easing: Easing.inOut(Easing.quad) })
+    );
 
-    // Phase 4 — text rises up
-    setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 480,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: USE_NATIVE,
-        }),
-        Animated.timing(textY, {
-          toValue: 0,
-          duration: 480,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: USE_NATIVE,
-        }),
-      ]).start();
-    }, 650);
+    textIn.value = withDelay(
+      1150,
+      withTiming(1, { duration: 550, easing: Easing.out(Easing.cubic) })
+    );
 
-    // Phase 5 — fade to black
-    setTimeout(() => {
-      Animated.timing(exitOpacity, {
-        toValue: 0,
-        duration: 500,
-        easing: Easing.in(Easing.quad),
-        useNativeDriver: USE_NATIVE,
-      }).start();
-    }, 2500);
-
-    // Hard exit at 3050ms
-    const exitTimer = setTimeout(onFinish, 3050);
+    // Fade to the app
+    exitOpacity.value = withDelay(
+      2800,
+      withTiming(0, { duration: 480, easing: Easing.in(Easing.quad) })
+    );
+    const exitTimer = setTimeout(onFinish, 3300);
     return () => clearTimeout(exitTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <Animated.View style={[styles.container, { opacity: exitOpacity }]}>
-      {/* Sonar rings expand from the centre */}
-      <View style={styles.anchor} pointerEvents="none">
-        <SonarRing anim={ring1} />
-        <SonarRing anim={ring2} />
-        <SonarRing anim={ring3} />
-      </View>
+  // The coin darkens as its edge faces the viewer — sells the 3D turn
+  const edgeShade = useDerivedValue(() => {
+    const rad = (rotY.value * Math.PI) / 180;
+    return 1 - Math.abs(Math.cos(rad));
+  });
 
-      {/* Logo: dark disc + gold ring */}
-      <Animated.View
-        style={[
-          styles.logoContainer,
-          {
-            opacity: logoOpacity,
-            transform: [{ scale: Animated.multiply(logoScale, pulse) }],
-          },
-        ]}
-      >
-        {/* Dark circular background */}
-        <View style={styles.disc}>
-          {/* Gold ring border (rendered as a circle with border) */}
-          <View style={styles.ring} />
+  const coinStyle = useAnimatedStyle(() => ({
+    opacity: coinOpacity.value,
+    transform: [
+      { perspective: 1100 },
+      { rotateY: `${rotY.value}deg` },
+      { scale: coinScale.value },
+    ],
+  }));
+
+  const shadeStyle = useAnimatedStyle(() => ({
+    opacity: edgeShade.value * 0.75,
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glow.value * 0.85,
+    transform: [{ scale: 0.8 + glow.value * 0.35 }],
+  }));
+
+  const shineStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shineX.value }, { rotate: "18deg" }],
+  }));
+
+  const textStyle = useAnimatedStyle(() => ({
+    opacity: textIn.value,
+    transform: [{ translateY: interpolate(textIn.value, [0, 1], [22, 0]) }],
+  }));
+
+  const exitStyle = useAnimatedStyle(() => ({
+    opacity: exitOpacity.value,
+  }));
+
+  return (
+    <Animated.View style={[styles.container, exitStyle]}>
+      {/* Warm radial glow behind the coin */}
+      <Animated.View style={[styles.glow, glowStyle]} pointerEvents="none" />
+
+      {/* The coin — perspective rotateY gives the 3D flip */}
+      <Animated.View style={[styles.coinWrap, coinStyle]}>
+        <Image source={COIN_SOURCE} style={styles.coin} resizeMode="contain" />
+        {/* Edge shading while the coin is side-on */}
+        <Animated.View style={[styles.coinShade, shadeStyle]} pointerEvents="none" />
+        {/* Specular sweep, clipped to the coin circle */}
+        <View style={styles.shineClip} pointerEvents="none">
+          <Animated.View style={[styles.shineBar, shineStyle]}>
+            <LinearGradient
+              colors={[
+                "rgba(255,255,255,0)",
+                "rgba(255,248,214,0.45)",
+                "rgba(255,255,255,0)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
         </View>
       </Animated.View>
 
       {/* App name + commodity label */}
-      <Animated.View
-        style={[
-          styles.textContainer,
-          { opacity: textOpacity, transform: [{ translateY: textY }] },
-        ]}
-      >
+      <Animated.View style={[styles.textContainer, textStyle]}>
         <Text style={styles.appName}>Gold</Text>
         <Text style={styles.appSubtitle}>XAU / USD</Text>
       </Animated.View>
@@ -184,51 +170,47 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 999,
   },
-  // Anchor for sonar rings — same size as the disc
-  anchor: {
+  glow: {
     position: "absolute",
-    width: DISC,
-    height: DISC,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sonarRing: {
-    position: "absolute",
-    width: DISC,
-    height: DISC,
-    borderRadius: DISC / 2,
-    borderWidth: 1.5,
-    borderColor: Colors.dark.gold,
-  },
-  logoContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  disc: {
-    width: DISC,
-    height: DISC,
-    borderRadius: DISC / 2,
-    backgroundColor: "#111008",
-    alignItems: "center",
-    justifyContent: "center",
-    // Gold glow on the circle itself
+    width: COIN * 1.9,
+    height: COIN * 1.9,
+    borderRadius: COIN,
+    backgroundColor: "rgba(255,203,64,0.16)",
     shadowColor: Colors.dark.gold,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 30,
-    elevation: 16,
+    shadowOpacity: 0.9,
+    shadowRadius: 60,
+    elevation: 20,
   },
-  // The gold ring inside the disc — sized to match the logo image proportions
-  ring: {
-    width: DISC * 0.58,
-    height: DISC * 0.58,
-    borderRadius: (DISC * 0.58) / 2,
-    borderWidth: RING_BORDER,
-    borderColor: Colors.dark.gold,
-    backgroundColor: "transparent",
+  coinWrap: {
+    width: COIN,
+    height: COIN,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coin: {
+    width: COIN,
+    height: COIN,
+  },
+  coinShade: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: COIN / 2,
+    backgroundColor: "#000",
+  },
+  shineClip: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: COIN / 2,
+    overflow: "hidden",
+  },
+  shineBar: {
+    position: "absolute",
+    top: -COIN * 0.25,
+    bottom: -COIN * 0.25,
+    width: COIN * 0.45,
+    left: COIN * 0.28,
   },
   textContainer: {
-    marginTop: 30,
+    marginTop: 34,
     alignItems: "center",
     gap: 6,
   },
