@@ -77,6 +77,58 @@ export async function fetchSeries(
   return candles.length >= Math.min(10, timestamps.length) ? candles : null;
 }
 
+const dateCache = new Map<string, number>();
+
+/**
+ * Gold's closing price (USD/oz) on a given calendar date, from real daily
+ * candles. Uses the nearest trading day at or before the date (markets are
+ * closed on weekends/holidays). Null if unavailable.
+ */
+export async function fetchGoldPriceOnDate(
+  symbol: string,
+  dateMs: number
+): Promise<number | null> {
+  const dayKey = new Date(dateMs).toISOString().slice(0, 10);
+  const cached = dateCache.get(dayKey);
+  if (cached !== undefined) return cached;
+
+  // Window of 10 days before → 1 day after covers weekends and holidays
+  const period1 = Math.floor(dateMs / 1000) - 10 * 86400;
+  const period2 = Math.floor(dateMs / 1000) + 86400;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const url = `${BASE}/${encodeURIComponent(symbol)}?period1=${period1}&period2=${period2}&interval=1d&includePrePost=false`;
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const result = json?.chart?.result?.[0];
+    const timestamps: unknown[] = result?.timestamp ?? [];
+    const closes: unknown[] = result?.indicators?.quote?.[0]?.close ?? [];
+
+    // Latest candle at or before end of the requested date
+    const cutoff = dateMs / 1000 + 86400;
+    let best: number | null = null;
+    for (let i = 0; i < timestamps.length; i++) {
+      const t = timestamps[i];
+      const c = closes[i];
+      if (typeof t === "number" && t < cutoff && plausible(c, 100, 100000)) {
+        best = Math.round(c * 100) / 100;
+      }
+    }
+    if (best !== null) dateCache.set(dayKey, best);
+    return best;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function fetchNews(
   query: string,
   count = 8

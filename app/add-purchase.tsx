@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,10 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { usePortfolio, GoldPurchase } from "@/context/PortfolioContext";
+import { TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
+import { fetchGoldPriceOnDate } from "@/lib/marketData";
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 type GoldType = "bar" | "coin";
 
@@ -74,6 +78,49 @@ export default function AddPurchaseScreen() {
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [estimate, setEstimate] = useState<{
+    cost: number;
+    pricePerOz: number;
+    date: string;
+  } | null>(null);
+  const [estimating, setEstimating] = useState(false);
+
+  // Look up the real gold price on the purchase date and suggest the
+  // market cost for the entered weight.
+  useEffect(() => {
+    setEstimate(null);
+    const weight = parseFloat(weightGrams);
+    if (!DATE_RE.test(purchaseDate) || !weight || weight <= 0) return;
+    const dateMs = new Date(`${purchaseDate}T12:00:00Z`).getTime();
+    if (isNaN(dateMs) || dateMs > Date.now() + 86400_000) return;
+
+    let cancelled = false;
+    setEstimating(true);
+    const timer = setTimeout(() => {
+      fetchGoldPriceOnDate("XAUUSD=X", dateMs)
+        .then((pricePerOz) => {
+          if (cancelled || !pricePerOz) return;
+          setEstimate({
+            cost: (weight / TROY_OUNCE_GRAMS) * pricePerOz,
+            pricePerOz,
+            date: purchaseDate,
+          });
+        })
+        .finally(() => {
+          if (!cancelled) setEstimating(false);
+        });
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [purchaseDate, weightGrams]);
+
+  const applyEstimate = () => {
+    if (!estimate) return;
+    Haptics.selectionAsync();
+    setPricePaid(estimate.cost.toFixed(2));
+  };
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -303,6 +350,33 @@ export default function AddPurchaseScreen() {
             keyboardType="decimal-pad"
             prefix="$"
           />
+          {estimating ? (
+            <View style={styles.estimateChip}>
+              <ActivityIndicator size="small" color={Colors.dark.gold} />
+              <Text style={styles.estimateText}>
+                Looking up the gold price on that date…
+              </Text>
+            </View>
+          ) : estimate ? (
+            <Pressable
+              onPress={applyEstimate}
+              style={({ pressed }) => [
+                styles.estimateChip,
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Feather name="clock" size={14} color={Colors.dark.gold} />
+              <Text style={styles.estimateText}>
+                Market value on {estimate.date}: $
+                {estimate.cost.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                (${estimate.pricePerOz.toLocaleString("en-US")}/oz)
+              </Text>
+              <Text style={styles.estimateUse}>Use</Text>
+            </Pressable>
+          ) : null}
           <InputField
             label="Purchase Date"
             value={purchaseDate}
@@ -463,6 +537,30 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 16,
+  },
+  estimateChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.dark.goldFaint,
+    borderWidth: 1,
+    borderColor: "rgba(255,215,0,0.35)",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: -6,
+  },
+  estimateText: {
+    flex: 1,
+    fontSize: 12.5,
+    fontFamily: "Inter_500Medium",
+    color: Colors.dark.text,
+    lineHeight: 17,
+  },
+  estimateUse: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    color: Colors.dark.gold,
   },
   inputWrapper: {
     gap: 8,
