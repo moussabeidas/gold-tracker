@@ -57,6 +57,7 @@
   "dependencies": {
     "@react-native-ml-kit/text-recognition": "^2.0.0",
     "expo-apple-authentication": "~8.0.8",
+    "expo-build-properties": "^1.0.10",
     "expo-secure-store": "^15.0.8",
     "victory-native": "^41.20.2"
   }
