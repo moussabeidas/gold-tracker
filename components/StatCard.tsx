@@ -25,6 +25,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     gap: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.07)",
   },
   label: {
     fontSize: 12,
@@ -37,6 +39,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: Colors.dark.text,
     fontFamily: "Inter_700Bold",
+    fontVariant: ["tabular-nums"],
   },
   subValue: {
     fontSize: 12,

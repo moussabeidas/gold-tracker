@@ -1,5 +1,10 @@
-import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, Pressable, StyleSheet, type LayoutChangeEvent } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import Colors from "@/constants/colors";
 import { TimeRange } from "@/hooks/useGoldData";
 import * as Haptics from "expo-haptics";
@@ -12,22 +17,48 @@ interface TimeRangeSelectorProps {
 }
 
 export function TimeRangeSelector({ selected, onSelect }: TimeRangeSelectorProps) {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const slotWidth = trackWidth / RANGES.length;
+  const position = useSharedValue(RANGES.indexOf(selected));
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    setTrackWidth(e.nativeEvent.layout.width);
+  };
+
+  const pillStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX: withSpring(position.value * slotWidth, {
+          damping: 18,
+          stiffness: 220,
+        }),
+      },
+    ],
+  }));
+
+  const handleSelect = (range: TimeRange, index: number) => {
+    Haptics.selectionAsync();
+    position.value = index;
+    onSelect(range);
+  };
+
   return (
-    <View style={styles.container}>
-      {RANGES.map((range) => {
+    <View style={styles.container} onLayout={onLayout}>
+      {slotWidth > 0 && (
+        <Animated.View
+          style={[styles.pill, { width: slotWidth - 4 }, pillStyle]}
+        />
+      )}
+      {RANGES.map((range, i) => {
         const isSelected = range === selected;
         return (
           <Pressable
             key={range}
             style={({ pressed }) => [
               styles.button,
-              isSelected && styles.buttonSelected,
               pressed && !isSelected && styles.buttonPressed,
             ]}
-            onPress={() => {
-              Haptics.selectionAsync();
-              onSelect(range);
-            }}
+            onPress={() => handleSelect(range, i)}
           >
             <Text
               style={[
@@ -47,19 +78,25 @@ export function TimeRangeSelector({ selected, onSelect }: TimeRangeSelectorProps
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    position: "relative",
+  },
+  pill: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 2,
+    borderRadius: 9,
+    backgroundColor: Colors.dark.surfaceElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,215,0,0.25)",
   },
   button: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 7,
-    borderRadius: 8,
-    marginHorizontal: 2,
-  },
-  buttonSelected: {
-    backgroundColor: Colors.dark.surfaceElevated,
+    paddingVertical: 8,
+    borderRadius: 9,
   },
   buttonPressed: {
     opacity: 0.6,

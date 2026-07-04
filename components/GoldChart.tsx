@@ -10,6 +10,7 @@ import Svg, {
   Rect,
 } from "react-native-svg";
 import { PanResponder } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { PricePoint } from "@/hooks/useGoldData";
 import Colors from "@/constants/colors";
 
@@ -123,7 +124,11 @@ export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
     scrubIndex !== null ? getScrubY(scrubIndex) : null;
 
   return (
-    <View style={[styles.container, { width: chartW }]} {...panResponder.panHandlers}>
+    <Animated.View
+      entering={FadeIn.duration(450)}
+      style={[styles.container, { width: chartW }]}
+      {...panResponder.panHandlers}
+    >
       <Svg width={chartW} height={CHART_HEIGHT}>
         <Defs>
           <LinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -164,7 +169,7 @@ export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
           </>
         )}
       </Svg>
-    </View>
+    </Animated.View>
   );
 }
 

@@ -17,7 +17,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.mbeidas.goldtracker",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "supportsTablet": false,
       "requireFullScreen": true,
       "infoPlist": {
@@ -25,6 +25,7 @@
         "NSPhotoLibraryUsageDescription": "Gold Tracker accesses your photo library to add images of your gold holdings.",
         "NSPhotoLibraryAddUsageDescription": "Gold Tracker saves photos of your gold holdings to your library."
       },
+      "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -40,14 +41,10 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://replit.com/"
-        }
-      ],
+      "expo-router",
       "expo-font",
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-image-picker",
         {

@@ -70,9 +70,12 @@ jobs:
           echo "=== Available signing identities ==="
           security find-identity -v -p codesigning
 
-          # Install provisioning profile (must use UUID as filename for Xcode to find it)
+          # Install provisioning profile (must use UUID as filename for Xcode to find it).
+          # Extract the UUID from the profile itself so regenerated profiles keep working.
+          PROFILE_UUID=$(security cms -D -i store-assets/Gold_Tracker_Production.mobileprovision | plutil -extract UUID raw -o - -)
+          echo "Profile UUID: $PROFILE_UUID"
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp store-assets/Gold_Tracker_Production.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/0583bd09-06ea-497f-bcbe-16caf294016d.mobileprovision
+          cp store-assets/Gold_Tracker_Production.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$PROFILE_UUID".mobileprovision
           echo "Installed provisioning profile:"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 

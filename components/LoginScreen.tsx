@@ -1,22 +1,83 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Pressable,
   ActivityIndicator,
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { SymbolView } from "expo-symbols";
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Haptics from "expo-haptics";
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/lib/auth";
+import { AnimatedPressable } from "@/components/AnimatedPressable";
+
+const FEATURES = [
+  {
+    icon: "trending-up" as const,
+    title: "Live Price Tracking",
+    subtitle: "Real-time XAU/USD with interactive charts",
+  },
+  {
+    icon: "camera" as const,
+    title: "Photo Capture",
+    subtitle: "Photograph your bars and coins for your records",
+  },
+  {
+    icon: "briefcase" as const,
+    title: "Portfolio Analytics",
+    subtitle: "Track total weight, cost basis, and current value",
+  },
+];
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { login, isLoading } = useAuth();
   const isIOS = Platform.OS === "ios";
+  const [appleAvailable, setAppleAvailable] = useState(false);
+
+  useEffect(() => {
+    if (isIOS) {
+      AppleAuthentication.isAvailableAsync()
+        .then(setAppleAvailable)
+        .catch(() => setAppleAvailable(false));
+    }
+  }, [isIOS]);
+
+  // Slow breathing glow behind the seal
+  const glow = useSharedValue(0.45);
+  useEffect(() => {
+    glow.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0.45, { duration: 2000, easing: Easing.inOut(Easing.quad) })
+      ),
+      -1
+    );
+  }, [glow]);
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glow.value,
+    transform: [{ scale: 0.92 + glow.value * 0.16 }],
+  }));
+
+  const handleLogin = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    login();
+  };
 
   return (
     <View
@@ -30,8 +91,12 @@ export function LoginScreen() {
         },
       ]}
     >
-      <View style={styles.topSection}>
+      <Animated.View
+        entering={FadeInDown.duration(500).springify()}
+        style={styles.topSection}
+      >
         <View style={styles.iconRing}>
+          <Animated.View style={[styles.iconGlow, glowStyle]} />
           <View style={styles.iconInner}>
             {isIOS ? (
               <SymbolView name="seal.fill" tintColor={Colors.dark.gold} size={52} />
@@ -43,67 +108,61 @@ export function LoginScreen() {
 
         <Text style={styles.appName}>Gold</Text>
         <Text style={styles.tagline}>Your personal gold portfolio tracker</Text>
-      </View>
+      </Animated.View>
 
       <View style={styles.middleSection}>
-        <View style={styles.featureRow}>
-          <View style={styles.featureIcon}>
-            <Feather name="trending-up" size={18} color={Colors.dark.gold} />
-          </View>
-          <View style={styles.featureText}>
-            <Text style={styles.featureTitle}>Live Price Tracking</Text>
-            <Text style={styles.featureSubtitle}>
-              Real-time XAU/USD with interactive charts
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.featureRow}>
-          <View style={styles.featureIcon}>
-            <Feather name="camera" size={18} color={Colors.dark.gold} />
-          </View>
-          <View style={styles.featureText}>
-            <Text style={styles.featureTitle}>Photo Capture</Text>
-            <Text style={styles.featureSubtitle}>
-              Photograph your bars and coins for your records
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.featureRow}>
-          <View style={styles.featureIcon}>
-            <Feather name="briefcase" size={18} color={Colors.dark.gold} />
-          </View>
-          <View style={styles.featureText}>
-            <Text style={styles.featureTitle}>Portfolio Analytics</Text>
-            <Text style={styles.featureSubtitle}>
-              Track total weight, cost basis, and current value
-            </Text>
-          </View>
-        </View>
+        {FEATURES.map((f, i) => (
+          <Animated.View
+            key={f.title}
+            entering={FadeInDown.delay(150 + i * 110).duration(450).springify()}
+            style={styles.featureRow}
+          >
+            <View style={styles.featureIcon}>
+              <Feather name={f.icon} size={18} color={Colors.dark.gold} />
+            </View>
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>{f.title}</Text>
+              <Text style={styles.featureSubtitle}>{f.subtitle}</Text>
+            </View>
+          </Animated.View>
+        ))}
       </View>
 
-      <View style={styles.bottomSection}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.loginButton,
-            pressed && styles.loginButtonPressed,
-          ]}
-          onPress={login}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color={Colors.dark.background} />
-          ) : (
-            <Text style={styles.loginButtonText}>Sign In to Continue</Text>
-          )}
-        </Pressable>
+      <Animated.View
+        entering={FadeInUp.delay(450).duration(450).springify()}
+        style={styles.bottomSection}
+      >
+        {isLoading ? (
+          <View style={styles.loadingButton}>
+            <ActivityIndicator color={Colors.dark.gold} />
+          </View>
+        ) : appleAvailable ? (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={
+              AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+            }
+            buttonStyle={
+              AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+            }
+            cornerRadius={14}
+            style={styles.appleButton}
+            onPress={handleLogin}
+          />
+        ) : (
+          <AnimatedPressable
+            scaleDown={0.97}
+            style={styles.loginButton}
+            onPress={handleLogin}
+          >
+            <Text style={styles.loginButtonText}>Continue</Text>
+          </AnimatedPressable>
+        )}
 
         <Text style={styles.disclaimer}>
-          Your portfolio data is stored securely on your device and linked to
-          your account.
+          Your portfolio is stored privately on this device.{"\n"}
+          No account details ever leave your phone.
         </Text>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -129,6 +188,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,215,0,0.06)",
+  },
+  iconGlow: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 55,
+    backgroundColor: "rgba(255,215,0,0.14)",
   },
   iconInner: {
     alignItems: "center",
@@ -182,14 +246,22 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingBottom: 16,
   },
+  appleButton: {
+    height: 54,
+    width: "100%",
+  },
+  loadingButton: {
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: Colors.dark.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   loginButton: {
     backgroundColor: Colors.dark.gold,
     borderRadius: 14,
     paddingVertical: 18,
     alignItems: "center",
-  },
-  loginButtonPressed: {
-    opacity: 0.85,
   },
   loginButtonText: {
     fontSize: 17,

@@ -13,6 +13,7 @@ import { SymbolView, type SFSymbol } from "expo-symbols";
 import Colors from "@/constants/colors";
 import { useGoldPrice } from "@/context/GoldPriceContext";
 import * as Haptics from "expo-haptics";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 interface MetalItem {
   symbol: string;
@@ -141,19 +142,33 @@ export default function WatchlistScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.pageTitle}>Watchlist</Text>
+      <Animated.Text
+        entering={FadeInDown.duration(350).springify()}
+        style={styles.pageTitle}
+      >
+        Watchlist
+      </Animated.Text>
 
-      <View style={styles.card}>
+      <Animated.View
+        entering={FadeInDown.delay(70).duration(400).springify()}
+        style={styles.card}
+      >
         {items.map((item, i) => (
           <MetalRow key={item.symbol} item={item} isLast={i === items.length - 1} />
         ))}
-      </View>
+      </Animated.View>
 
-      <View style={styles.sectionHeader}>
+      <Animated.View
+        entering={FadeInDown.delay(160).duration(400).springify()}
+        style={styles.sectionHeader}
+      >
         <Text style={styles.sectionTitle}>Market Overview</Text>
-      </View>
+      </Animated.View>
 
-      <View style={styles.overviewGrid}>
+      <Animated.View
+        entering={FadeInDown.delay(220).duration(400).springify()}
+        style={styles.overviewGrid}
+      >
         {[
           {
             label: "USD Index",
@@ -188,9 +203,12 @@ export default function WatchlistScreen() {
             </View>
           );
         })}
-      </View>
+      </Animated.View>
 
-      <View style={styles.goldFactsCard}>
+      <Animated.View
+        entering={FadeInDown.delay(300).duration(400).springify()}
+        style={styles.goldFactsCard}
+      >
         <Text style={styles.goldFactsTitle}>Gold Facts</Text>
         {[
           { icon: "globe", text: "1 troy ounce = 31.103 grams" },
@@ -205,7 +223,7 @@ export default function WatchlistScreen() {
             <Text style={styles.factText}>{fact.text}</Text>
           </View>
         ))}
-      </View>
+      </Animated.View>
     </ScrollView>
   );
 }
