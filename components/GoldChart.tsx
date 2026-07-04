@@ -1,19 +1,11 @@
-import React, { useState, useCallback, useMemo } from "react";
-import { View, StyleSheet, Dimensions, Platform } from "react-native";
-import Svg, {
-  Path,
-  Defs,
-  LinearGradient,
-  Stop,
-  Line,
-  Circle,
-  Rect,
-} from "react-native-svg";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { View, StyleSheet, Dimensions } from "react-native";
+import Svg, { Path, Defs, LinearGradient, Stop, Line, Circle } from "react-native-svg";
 import { PanResponder } from "react-native";
 import Animated, {
   FadeIn,
   useSharedValue,
-  useAnimatedProps,
+  useAnimatedStyle,
   withRepeat,
   withTiming,
   Easing,
@@ -23,14 +15,24 @@ import Colors from "@/constants/colors";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const CHART_HEIGHT = 200;
-const PADDING_HORIZONTAL = 0;
+// Rendering more segments than ~2 per pt of width is invisible — thin the
+// series before building the path so intraday (390 points) stays cheap.
+const MAX_PATH_POINTS = 140;
+const HALO_SIZE = 30;
 
-function buildPath(
-  data: PricePoint[],
-  chartW: number,
-  chartH: number
-): { path: string; min: number; max: number } {
-  if (!data.length) return { path: "", min: 0, max: 0 };
+function thin(data: PricePoint[]): PricePoint[] {
+  if (data.length <= MAX_PATH_POINTS) return data;
+  const stride = Math.ceil(data.length / MAX_PATH_POINTS);
+  const out: PricePoint[] = [];
+  for (let i = 0; i < data.length; i += stride) out.push(data[i]);
+  if (out[out.length - 1] !== data[data.length - 1]) {
+    out.push(data[data.length - 1]);
+  }
+  return out;
+}
+
+function buildPaths(data: PricePoint[], chartW: number, chartH: number) {
+  if (!data.length) return { path: "", areaPath: "", endY: null as number | null };
   const prices = data.map((d) => d.price);
   const min = Math.min(...prices);
   const max = Math.max(...prices);
@@ -41,21 +43,20 @@ function buildPath(
   const toY = (p: number) =>
     chartH - ((p - (min - pad)) / (range + pad * 2)) * chartH;
 
-  let d = `M ${toX(0)} ${toY(data[0].price)}`;
+  let d = `M ${toX(0).toFixed(1)} ${toY(data[0].price).toFixed(1)}`;
   for (let i = 1; i < data.length; i++) {
     const x0 = toX(i - 1);
     const y0 = toY(data[i - 1].price);
     const x1 = toX(i);
     const y1 = toY(data[i].price);
     const cpx = (x0 + x1) / 2;
-    d += ` C ${cpx} ${y0} ${cpx} ${y1} ${x1} ${y1}`;
+    d += ` C ${cpx.toFixed(1)} ${y0.toFixed(1)} ${cpx.toFixed(1)} ${y1.toFixed(1)} ${x1.toFixed(1)} ${y1.toFixed(1)}`;
   }
-  return { path: d, min, max };
-}
-
-function buildAreaPath(linePath: string, chartW: number, chartH: number) {
-  if (!linePath) return "";
-  return `${linePath} L ${chartW} ${chartH} L 0 ${chartH} Z`;
+  return {
+    path: d,
+    areaPath: `${d} L ${chartW} ${chartH} L 0 ${chartH} Z`,
+    endY: toY(data[data.length - 1].price),
+  };
 }
 
 interface GoldChartProps {
@@ -64,28 +65,45 @@ interface GoldChartProps {
   onScrub?: (price: number | null, index: number | null) => void;
 }
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
-  const [scrubX, setScrubX] = useState<number | null>(null);
-
-  // Breathing halo on the live endpoint of the line
+// Breathing halo rendered as a plain Animated.View overlay — animating SVG
+// props at 60fps was the main-screen scroll killer; view transforms run
+// natively on the UI thread with zero per-frame prop traffic.
+function EndpointHalo({ color, x, y }: { color: string; x: number; y: number }) {
   const breathe = useSharedValue(0);
-  React.useEffect(() => {
+  useEffect(() => {
     breathe.value = withRepeat(
       withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) }),
       -1
     );
   }, [breathe]);
-  const haloProps = useAnimatedProps(() => ({
-    r: 4 + breathe.value * 11,
+
+  const haloStyle = useAnimatedStyle(() => ({
     opacity: 0.45 * (1 - breathe.value),
+    transform: [{ scale: 0.25 + breathe.value * 0.75 }],
   }));
-  const chartW = SCREEN_W - PADDING_HORIZONTAL * 2;
-  const { path, areaPath } = useMemo(() => {
-    const built = buildPath(data, chartW, CHART_HEIGHT);
-    return { path: built.path, areaPath: buildAreaPath(built.path, chartW, CHART_HEIGHT) };
-  }, [data, chartW]);
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        styles.haloAnchor,
+        { left: x - HALO_SIZE / 2, top: y - HALO_SIZE / 2 },
+      ]}
+    >
+      <Animated.View style={[styles.halo, { backgroundColor: color }, haloStyle]} />
+      <View style={[styles.endDot, { backgroundColor: color }]} />
+    </View>
+  );
+}
+
+function GoldChartInner({ data, isPositive, onScrub }: GoldChartProps) {
+  const [scrubX, setScrubX] = useState<number | null>(null);
+  const chartW = SCREEN_W;
+
+  const { path, areaPath, endY } = useMemo(
+    () => buildPaths(thin(data), chartW, CHART_HEIGHT),
+    [data, chartW]
+  );
 
   const lineColor = isPositive ? Colors.dark.positive : Colors.dark.negative;
   const gradientColor = isPositive
@@ -120,37 +138,38 @@ export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
 
   // Claim the gesture only for horizontal drags so vertical scrolling
   // that starts on the chart passes through to the ScrollView.
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponder: (_e, gs) =>
-      Math.abs(gs.dx) > 8 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.4,
-    onPanResponderGrant: (e) => {
-      const x = e.nativeEvent.locationX;
-      setScrubX(x);
-      const idx = getIndexForX(x);
-      onScrub?.(data[idx]?.price ?? null, idx);
-    },
-    onPanResponderMove: (e) => {
-      const x = e.nativeEvent.locationX;
-      setScrubX(x);
-      const idx = getIndexForX(x);
-      onScrub?.(data[idx]?.price ?? null, idx);
-    },
-    onPanResponderRelease: () => {
-      setScrubX(null);
-      onScrub?.(null, null);
-    },
-    onPanResponderTerminate: () => {
-      setScrubX(null);
-      onScrub?.(null, null);
-    },
-  });
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_e, gs) =>
+          Math.abs(gs.dx) > 8 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.4,
+        onPanResponderGrant: (e) => {
+          const x = e.nativeEvent.locationX;
+          setScrubX(x);
+          const idx = getIndexForX(x);
+          onScrub?.(data[idx]?.price ?? null, idx);
+        },
+        onPanResponderMove: (e) => {
+          const x = e.nativeEvent.locationX;
+          setScrubX(x);
+          const idx = getIndexForX(x);
+          onScrub?.(data[idx]?.price ?? null, idx);
+        },
+        onPanResponderRelease: () => {
+          setScrubX(null);
+          onScrub?.(null, null);
+        },
+        onPanResponderTerminate: () => {
+          setScrubX(null);
+          onScrub?.(null, null);
+        },
+      }),
+    [data, getIndexForX, onScrub]
+  );
 
   const scrubIndex = scrubX !== null ? getIndexForX(scrubX) : null;
-  const scrubY =
-    scrubIndex !== null ? getScrubY(scrubIndex) : null;
-
-  const endY = data.length ? getScrubY(data.length - 1) : null;
+  const scrubY = scrubIndex !== null ? getScrubY(scrubIndex) : null;
 
   return (
     <Animated.View
@@ -176,18 +195,6 @@ export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
           strokeLinejoin="round"
         />
 
-        {scrubX === null && endY !== null && (
-          <>
-            <AnimatedCircle
-              cx={chartW - 2}
-              cy={endY}
-              fill={lineColor}
-              animatedProps={haloProps}
-            />
-            <Circle cx={chartW - 2} cy={endY} r={3.5} fill={lineColor} />
-          </>
-        )}
-
         {scrubX !== null && scrubY !== null && (
           <>
             <Line
@@ -210,12 +217,34 @@ export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
           </>
         )}
       </Svg>
+
+      {scrubX === null && endY !== null && (
+        <EndpointHalo color={lineColor} x={chartW - 3} y={endY} />
+      )}
     </Animated.View>
   );
 }
 
+export const GoldChart = React.memo(GoldChartInner);
+
 const styles = StyleSheet.create({
   container: {
     height: CHART_HEIGHT,
+  },
+  haloAnchor: {
+    position: "absolute",
+    width: HALO_SIZE,
+    height: HALO_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  halo: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: HALO_SIZE / 2,
+  },
+  endDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
 });
