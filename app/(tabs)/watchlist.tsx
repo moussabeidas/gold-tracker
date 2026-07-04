@@ -13,8 +13,8 @@ import { SymbolView, type SFSymbol } from "expo-symbols";
 import Colors from "@/constants/colors";
 import { useGoldPrice } from "@/context/GoldPriceContext";
 import * as Haptics from "expo-haptics";
+import { FocusReveal } from "@/components/FocusReveal";
 import Animated, {
-  FadeInDown,
   useSharedValue,
   useAnimatedStyle,
   withSequence,
@@ -197,33 +197,21 @@ export default function WatchlistScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <Animated.Text
-        entering={FadeInDown.duration(350).springify()}
-        style={styles.pageTitle}
-      >
-        Watchlist
-      </Animated.Text>
+      <FocusReveal offset={12}>
+        <Text style={styles.pageTitle}>Watchlist</Text>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(70).duration(400).springify()}
-        style={styles.card}
-      >
+      <FocusReveal delay={60} style={styles.card}>
         {items.map((item, i) => (
           <MetalRow key={item.symbol} item={item} isLast={i === items.length - 1} />
         ))}
-      </Animated.View>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(160).duration(400).springify()}
-        style={styles.sectionHeader}
-      >
+      <FocusReveal delay={140} style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Market Overview</Text>
-      </Animated.View>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(220).duration(400).springify()}
-        style={styles.overviewGrid}
-      >
+      <FocusReveal delay={200} style={styles.overviewGrid}>
         {[
           {
             label: "USD Index",
@@ -258,12 +246,9 @@ export default function WatchlistScreen() {
             </View>
           );
         })}
-      </Animated.View>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(300).duration(400).springify()}
-        style={styles.goldFactsCard}
-      >
+      <FocusReveal delay={280} style={styles.goldFactsCard}>
         <Text style={styles.goldFactsTitle}>Gold Facts</Text>
         {[
           { icon: "globe", text: "1 troy ounce = 31.103 grams" },
@@ -278,7 +263,7 @@ export default function WatchlistScreen() {
             <Text style={styles.factText}>{fact.text}</Text>
           </View>
         ))}
-      </Animated.View>
+      </FocusReveal>
     </ScrollView>
   );
 }

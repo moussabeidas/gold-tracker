@@ -28,6 +28,7 @@ import { useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { CountUp } from "@/components/CountUp";
+import { FocusReveal } from "@/components/FocusReveal";
 
 function formatCurrency(n: number) {
   return n.toLocaleString("en-US", {
@@ -182,10 +183,7 @@ export default function PortfolioScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <Animated.View
-        entering={FadeInDown.duration(350).springify()}
-        style={styles.header}
-      >
+      <FocusReveal offset={12} style={styles.header}>
         <Text style={styles.pageTitle}>Portfolio</Text>
         <AnimatedPressable
           scaleDown={0.88}
@@ -198,14 +196,11 @@ export default function PortfolioScreen() {
             <Feather name="plus" size={20} color={Colors.dark.background} />
           )}
         </AnimatedPressable>
-      </Animated.View>
+      </FocusReveal>
 
       {/* Free tier usage indicator */}
       {!isPro && (
-        <Animated.View
-          entering={FadeInDown.delay(60).duration(350).springify()}
-          style={styles.tierBanner}
-        >
+        <FocusReveal delay={60} style={styles.tierBanner}>
           <View style={styles.tierLeft}>
             <Text style={styles.tierLabel}>
               {purchases.length} of {FREE_LIMIT} free slots used
@@ -231,14 +226,11 @@ export default function PortfolioScreen() {
               {atLimit ? "Upgrade" : "Go Pro"}
             </Text>
           </AnimatedPressable>
-        </Animated.View>
+        </FocusReveal>
       )}
 
       {purchases.length > 0 && (
-        <Animated.View
-          entering={FadeInDown.delay(120).duration(400).springify()}
-          style={styles.summaryCard}
-        >
+        <FocusReveal delay={110} style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Total Value</Text>
           <CountUp
             value={currentTotalValue}
@@ -272,14 +264,11 @@ export default function PortfolioScreen() {
               </Text>
             </View>
           </View>
-        </Animated.View>
+        </FocusReveal>
       )}
 
       {!isLoading && purchases.length === 0 && (
-        <Animated.View
-          entering={FadeInUp.delay(80).duration(400).springify()}
-          style={styles.emptyState}
-        >
+        <FocusReveal delay={80} style={styles.emptyState}>
           <View style={styles.emptyIconContainer}>
             {isIOS ? (
               <SymbolView name="seal.fill" tintColor={Colors.dark.gold} size={48} />
@@ -298,11 +287,11 @@ export default function PortfolioScreen() {
           >
             <Text style={styles.emptyAddButtonText}>Add Purchase</Text>
           </AnimatedPressable>
-        </Animated.View>
+        </FocusReveal>
       )}
 
       {purchases.length > 0 && (
-        <View style={styles.purchasesList}>
+        <FocusReveal delay={170} style={styles.purchasesList}>
           <Text style={styles.sectionTitle}>Holdings</Text>
           {purchases.map((item, i) => (
             <PurchaseCard
@@ -312,7 +301,7 @@ export default function PortfolioScreen() {
               onDelete={() => removePurchase(item.id)}
             />
           ))}
-        </View>
+        </FocusReveal>
       )}
     </ScrollView>
   );

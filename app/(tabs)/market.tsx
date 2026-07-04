@@ -12,8 +12,8 @@ import { SymbolView } from "expo-symbols";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { FocusReveal } from "@/components/FocusReveal";
 import Animated, {
-  FadeInDown,
   ZoomIn,
   useSharedValue,
   useAnimatedStyle,
@@ -69,10 +69,7 @@ function PreviewListing({
   const isIOS = Platform.OS === "ios";
 
   return (
-    <Animated.View
-      entering={FadeInDown.delay(350 + index * 80).duration(400).springify()}
-      style={styles.listingCard}
-    >
+    <FocusReveal delay={300 + index * 70} style={styles.listingCard}>
       <View style={styles.listingImage}>
         {isIOS ? (
           <SymbolView name="seal.fill" tintColor={Colors.dark.goldDim} size={28} />
@@ -101,7 +98,7 @@ function PreviewListing({
           <Text style={styles.lockText}>Preview</Text>
         </View>
       </View>
-    </Animated.View>
+    </FocusReveal>
   );
 }
 
@@ -160,17 +157,14 @@ export default function MarketScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <Animated.View
-        entering={FadeInDown.duration(350).springify()}
-        style={styles.header}
-      >
+      <FocusReveal offset={12} style={styles.header}>
         <Text style={styles.pageTitle}>Marketplace</Text>
         <View style={styles.comingSoonPill}>
           <Text style={styles.comingSoonText}>COMING SOON</Text>
         </View>
-      </Animated.View>
+      </FocusReveal>
 
-      <Animated.View entering={FadeInDown.delay(80).duration(400).springify()}>
+      <FocusReveal delay={70}>
         <LinearGradient
           colors={["#241C05", "#191919", Colors.dark.surfaceElevated]}
           start={{ x: 0, y: 0 }}
@@ -197,15 +191,11 @@ export default function MarketScreen() {
             name your price and reach buyers right here in the app.
           </Text>
         </LinearGradient>
-      </Animated.View>
+      </FocusReveal>
 
       <View style={styles.featuresSection}>
         {FEATURES.map((f, i) => (
-          <Animated.View
-            key={f.title}
-            entering={FadeInDown.delay(160 + i * 70).duration(400).springify()}
-            style={styles.featureRow}
-          >
+          <FocusReveal key={f.title} delay={140 + i * 60} style={styles.featureRow}>
             <View style={styles.featureIcon}>
               <Feather name={f.icon} size={16} color={Colors.dark.gold} />
             </View>
@@ -213,16 +203,13 @@ export default function MarketScreen() {
               <Text style={styles.featureTitle}>{f.title}</Text>
               <Text style={styles.featureBody}>{f.body}</Text>
             </View>
-          </Animated.View>
+          </FocusReveal>
         ))}
       </View>
 
-      <Animated.Text
-        entering={FadeInDown.delay(320).duration(400).springify()}
-        style={styles.sectionTitle}
-      >
-        A taste of what's coming
-      </Animated.Text>
+      <FocusReveal delay={260}>
+        <Text style={styles.sectionTitle}>A taste of what's coming</Text>
+      </FocusReveal>
 
       <View style={styles.listings}>
         <PreviewListing
@@ -245,9 +232,7 @@ export default function MarketScreen() {
         />
       </View>
 
-      <Animated.View
-        entering={FadeInDown.delay(600).duration(400).springify()}
-      >
+      <FocusReveal delay={520}>
         <AnimatedPressable
           scaleDown={0.96}
           onPress={handleNotify}
@@ -269,7 +254,7 @@ export default function MarketScreen() {
             </>
           )}
         </AnimatedPressable>
-      </Animated.View>
+      </FocusReveal>
     </ScrollView>
   );
 }

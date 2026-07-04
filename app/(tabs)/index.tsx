@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { FocusReveal } from "@/components/FocusReveal";
 
 import Colors from "@/constants/colors";
 import { useGoldData, TimeRange } from "@/hooks/useGoldData";
@@ -160,6 +160,7 @@ export default function GoldScreen() {
         />
       }
     >
+      <FocusReveal offset={12}>
       {scrubTime && (
         <View style={styles.scrubTimeContainer}>
           <Text style={styles.scrubTime}>{scrubTime}</Text>
@@ -194,25 +195,19 @@ export default function GoldScreen() {
       <TimeRangeSelector selected={range} onSelect={setRange} />
 
       <View style={styles.divider} />
+      </FocusReveal>
 
       <View style={styles.statsSection}>
         {[statsRow1, statsRow2, statsRow3].map((row, i) => (
-          <Animated.View
-            key={i}
-            entering={FadeInDown.delay(80 + i * 70).duration(400).springify()}
-            style={styles.statsRow}
-          >
+          <FocusReveal key={i} delay={70 + i * 60} style={styles.statsRow}>
             {row.map((s) => (
               <StatCard key={s.label} label={s.label} value={s.value} />
             ))}
-          </Animated.View>
+          </FocusReveal>
         ))}
       </View>
 
-      <Animated.View
-        entering={FadeInDown.delay(300).duration(420).springify()}
-        style={styles.aboutSection}
-      >
+      <FocusReveal delay={260} style={styles.aboutSection}>
         <View style={styles.aboutCard}>
           <Text style={styles.aboutTitle}>About Gold (XAU)</Text>
           <Text style={styles.aboutBody}>
@@ -227,12 +222,9 @@ export default function GoldScreen() {
             sentiment.
           </Text>
         </View>
-      </Animated.View>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(380).duration(420).springify()}
-        style={styles.newsSection}
-      >
+      <FocusReveal delay={330} style={styles.newsSection}>
         <Text style={styles.sectionTitle}>News</Text>
         <View style={styles.newsCard}>
           {articles.map((article, i) => (
@@ -243,7 +235,7 @@ export default function GoldScreen() {
             />
           ))}
         </View>
-      </Animated.View>
+      </FocusReveal>
     </ScrollView>
   );
 }
