@@ -29,6 +29,7 @@ import { LoginScreen } from "@/components/LoginScreen";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { CountUp } from "@/components/CountUp";
 import { FocusReveal } from "@/components/FocusReveal";
+import { SpinningCoin } from "@/components/SpinningCoin";
 
 function formatCurrency(n: number) {
   return n.toLocaleString("en-US", {
@@ -270,11 +271,7 @@ export default function PortfolioScreen() {
       {!isLoading && purchases.length === 0 && (
         <FocusReveal delay={80} style={styles.emptyState}>
           <View style={styles.emptyIconContainer}>
-            {isIOS ? (
-              <SymbolView name="seal.fill" tintColor={Colors.dark.gold} size={48} />
-            ) : (
-              <Feather name="package" size={48} color={Colors.dark.gold} />
-            )}
+            <SpinningCoin size={72} periodMs={7000} />
           </View>
           <Text style={styles.emptyTitle}>No purchases yet</Text>
           <Text style={styles.emptySubtitle}>
