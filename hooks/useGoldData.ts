@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+
+import { useGoldPrice, BASELINE_PRICE } from "@/context/GoldPriceContext";
 
 export type TimeRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1Y" | "5Y";
 
@@ -7,19 +9,17 @@ export interface PricePoint {
   price: number;
 }
 
-// Current gold price baseline (XAU/USD, March 2026)
-const CURRENT_PRICE = 3150.4;
-
-// Historically grounded start prices for each range.
-// Gold's bull run: ~$1,680 (Mar 2021) → ~$3,150 (Mar 2026)
+// Historically grounded start prices for each range, expressed against the
+// BASELINE_PRICE. When the live price differs, every level is rescaled by the
+// same ratio so the chart's shape and percentage moves stay plausible.
 const RANGE_START: Record<TimeRange, number> = {
   "1D": 3118.5,   // Today's open — tight intraday range ~$30
   "1W": 3054.2,   // One week ago
-  "1M": 2971.8,   // One month ago (Feb 2026)
-  "3M": 2762.3,   // Three months ago (Dec 2025)
-  "6M": 2488.6,   // Six months ago (Sep 2025)
-  "1Y": 2164.4,   // One year ago (Mar 2025)
-  "5Y": 1682.0,   // Five years ago (Mar 2021)
+  "1M": 2971.8,   // One month ago
+  "3M": 2762.3,   // Three months ago
+  "6M": 2488.6,   // Six months ago
+  "1Y": 2164.4,   // One year ago
+  "5Y": 1682.0,   // Five years ago
 };
 
 // Per-step log-volatility tuned to each range's typical daily move
@@ -71,13 +71,13 @@ function gaussian(rng: () => number): number {
   return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 
-function generateData(range: TimeRange): PricePoint[] {
+function generateData(range: TimeRange, endPrice: number): PricePoint[] {
   const now = Date.now();
   const n = RANGE_POINTS[range];
   const intervalMs = RANGE_INTERVAL_MS[range];
   const vol = RANGE_VOL[range];
-  const startPrice = RANGE_START[range];
-  const endPrice = CURRENT_PRICE;
+  const scale = endPrice / BASELINE_PRICE;
+  const startPrice = RANGE_START[range] * scale;
 
   // Unique seed per range — always same shape for same range
   const seed = range.split("").reduce((acc, c, i) => acc + c.charCodeAt(0) * (i + 7) * 31, 1337);
@@ -107,8 +107,10 @@ function generateData(range: TimeRange): PricePoint[] {
 
   let prices = logPrices.map((lp) => Math.round(Math.exp(lp) * 100) / 100);
 
-  // Clamp to plausible range (no gold below $1000 or above $5000)
-  prices = prices.map((p) => Math.min(5000, Math.max(1000, p)));
+  // Clamp to a plausible band around the current level
+  prices = prices.map((p) =>
+    Math.min(endPrice * 1.6, Math.max(endPrice * 0.3, p))
+  );
 
   // Insert sideways consolidation zones (realistic market texture)
   if (range !== "1D" && range !== "1W") {
@@ -137,46 +139,62 @@ function generateData(range: TimeRange): PricePoint[] {
 }
 
 export function useGoldData(range: TimeRange) {
+  const { spotPrice, anchorPrice, isLive } = useGoldPrice();
   const [data, setData] = useState<PricePoint[]>([]);
-  const [currentPrice, setCurrentPrice] = useState(CURRENT_PRICE);
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const generated = generateData(range);
-      setData(generated);
-      setCurrentPrice(CURRENT_PRICE);
-      setIsLoading(false);
-    }, 300);
-  }, [range]);
+  // Anchor the generated history was built against; regenerate only when the
+  // live price moves meaningfully (e.g. first real fetch replacing baseline),
+  // not on every 30s poll.
+  const generatedAnchor = useRef<number | null>(null);
+
+  const load = useCallback(
+    (anchor: number) => {
+      setIsLoading(true);
+      generatedAnchor.current = anchor;
+      setTimeout(() => {
+        setData(generateData(range, anchor));
+        setIsLoading(false);
+      }, 300);
+    },
+    [range]
+  );
 
   useEffect(() => {
-    load();
+    load(anchorPrice);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
-  // Live tick: small realistic intraday nudge every 3 seconds
   useEffect(() => {
-    const tick = setInterval(() => {
-      const nudge = (Math.random() - 0.5) * 0.9;
-      setCurrentPrice((prev) => {
-        const next = Math.round((prev + nudge) * 100) / 100;
-        setData((d) => {
-          if (!d.length) return d;
-          const updated = [...d];
-          updated[updated.length - 1] = { time: Date.now(), price: next };
-          return updated;
-        });
-        return next;
-      });
-    }, 3000);
-    return () => clearInterval(tick);
-  }, []);
+    const prev = generatedAnchor.current;
+    if (prev !== null && Math.abs(anchorPrice - prev) / prev > 0.003) {
+      load(anchorPrice);
+    }
+  }, [anchorPrice, load]);
 
-  const startPrice = data[0]?.price ?? CURRENT_PRICE;
-  const change = currentPrice - startPrice;
+  // Keep the last chart point in sync with the ticking spot price
+  useEffect(() => {
+    setData((d) => {
+      if (!d.length) return d;
+      const updated = [...d];
+      updated[updated.length - 1] = { time: Date.now(), price: spotPrice };
+      return updated;
+    });
+  }, [spotPrice]);
+
+  const startPrice = data[0]?.price ?? spotPrice;
+  const change = spotPrice - startPrice;
   const changePct = startPrice ? (change / startPrice) * 100 : 0;
   const isPositive = change >= 0;
 
-  return { data, currentPrice, change, changePct, isPositive, isLoading };
+  return {
+    data,
+    currentPrice: spotPrice,
+    change,
+    changePct,
+    isPositive,
+    isLoading,
+    isLive,
+    scale: anchorPrice / BASELINE_PRICE,
+  };
 }

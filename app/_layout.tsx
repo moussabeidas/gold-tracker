@@ -19,6 +19,7 @@ import { SplashAnimation } from "@/components/SplashAnimation";
 import { StatusBarBlur } from "@/components/StatusBarBlur";
 import Colors from "@/constants/colors";
 import { AuthProvider } from "@/lib/auth";
+import { GoldPriceProvider } from "@/context/GoldPriceContext";
 import { PortfolioProvider } from "@/context/PortfolioContext";
 import { SubscriptionProvider } from "@/context/SubscriptionContext";
 import { useAuth } from "@/lib/auth";
@@ -93,16 +94,18 @@ export default function RootLayout() {
           >
             <KeyboardProvider>
               <AuthProvider>
-                <SubscriptionProvider>
-                  <PortfolioWrapper>
-                    <StatusBar style="light" />
-                    <RootLayoutNav />
-                    <StatusBarBlur />
-                    {showCustomSplash && (
-                      <SplashAnimation onFinish={() => setShowCustomSplash(false)} />
-                    )}
-                  </PortfolioWrapper>
-                </SubscriptionProvider>
+                <GoldPriceProvider>
+                  <SubscriptionProvider>
+                    <PortfolioWrapper>
+                      <StatusBar style="light" />
+                      <RootLayoutNav />
+                      <StatusBarBlur />
+                      {showCustomSplash && (
+                        <SplashAnimation onFinish={() => setShowCustomSplash(false)} />
+                      )}
+                    </PortfolioWrapper>
+                  </SubscriptionProvider>
+                </GoldPriceProvider>
               </AuthProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
