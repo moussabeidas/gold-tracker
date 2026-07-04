@@ -13,9 +13,19 @@ import { SymbolView, type SFSymbol } from "expo-symbols";
 import Colors from "@/constants/colors";
 import { useGoldPrice } from "@/context/GoldPriceContext";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+  interpolateColor,
+  Easing,
+} from "react-native-reanimated";
 
 interface MetalItem {
+  /** When set, the price text flashes green/red as this value ticks */
+  liveValue?: number;
   symbol: string;
   name: string;
   price: string;
@@ -48,6 +58,38 @@ function formatUsd(n: number) {
 
 function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
   const [pressed, setPressed] = useState(false);
+  const scale = useSharedValue(1);
+  const flash = useSharedValue(0);
+  const prevLive = React.useRef(item.liveValue);
+
+  React.useEffect(() => {
+    const prev = prevLive.current;
+    prevLive.current = item.liveValue;
+    if (
+      item.liveValue === undefined ||
+      prev === undefined ||
+      prev === item.liveValue
+    )
+      return;
+    const direction = item.liveValue > prev ? 1 : -1;
+    flash.value = withSequence(
+      withTiming(direction, { duration: 120 }),
+      withTiming(0, { duration: 800, easing: Easing.out(Easing.quad) })
+    );
+  }, [item.liveValue, flash]);
+
+  const rowStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const priceStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+      flash.value,
+      [-1, 0, 1],
+      [Colors.dark.negative, Colors.dark.text, Colors.dark.positive]
+    ),
+  }));
+
   const color = item.isPositive ? Colors.dark.positive : Colors.dark.negative;
   const bgColor = item.isPositive
     ? Colors.dark.positiveBackground
@@ -55,9 +97,16 @@ function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
   const isIOS = Platform.OS === "ios";
 
   return (
+    <Animated.View style={rowStyle}>
     <Pressable
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
+      onPressIn={() => {
+        setPressed(true);
+        scale.value = withTiming(0.985, { duration: 110 });
+      }}
+      onPressOut={() => {
+        setPressed(false);
+        scale.value = withTiming(1, { duration: 160 });
+      }}
       onPress={() => Haptics.selectionAsync()}
       style={[
         styles.row,
@@ -83,12 +132,15 @@ function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
       </View>
 
       <View style={styles.rowRight}>
-        <Text style={styles.rowPrice}>{item.price}</Text>
+        <Animated.Text style={[styles.rowPrice, priceStyle]}>
+          {item.price}
+        </Animated.Text>
         <View style={[styles.changeBadge, { backgroundColor: bgColor }]}>
           <Text style={[styles.changeText, { color }]}>{item.changePct}</Text>
         </View>
       </View>
     </Pressable>
+    </Animated.View>
   );
 }
 
@@ -100,6 +152,7 @@ export default function WatchlistScreen() {
   const goldChange = spotPrice - dayOpen;
   const goldPct = dayOpen ? (goldChange / dayOpen) * 100 : 0;
   const goldItem: MetalItem = {
+    liveValue: spotPrice,
     symbol: "XAU",
     name: "Gold",
     price: formatUsd(spotPrice),

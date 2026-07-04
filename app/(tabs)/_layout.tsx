@@ -6,6 +6,7 @@ import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
 
@@ -42,6 +43,11 @@ function ClassicTabLayout() {
 
   return (
     <Tabs
+      screenListeners={{
+        tabPress: () => {
+          if (Platform.OS !== "web") Haptics.selectionAsync();
+        },
+      }}
       screenOptions={{
         tabBarActiveTintColor: Colors.dark.gold,
         tabBarInactiveTintColor: Colors.dark.tabIconDefault,

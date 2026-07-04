@@ -69,6 +69,7 @@ export default function GoldScreen() {
     isLoading,
     isLive,
     week52,
+    refresh,
     scale,
   } = useGoldData(range);
   const { articles } = useGoldNews();
@@ -84,10 +85,12 @@ export default function GoldScreen() {
     []
   );
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  }, []);
+    await refresh();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setRefreshing(false);
+  }, [refresh]);
 
   const topPad =
     Platform.OS === "web"

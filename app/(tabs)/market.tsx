@@ -14,6 +14,7 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
   FadeInDown,
+  ZoomIn,
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
@@ -130,6 +131,11 @@ export default function MarketScreen() {
     transform: [{ scale: 0.9 + glow.value * 0.2 }],
   }));
 
+  // The storefront gently floats on the glow
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: (glow.value - 0.75) * 10 }],
+  }));
+
   const handleNotify = async () => {
     if (notified) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -173,15 +179,17 @@ export default function MarketScreen() {
         >
           <View style={styles.heroIconWrap}>
             <Animated.View style={[styles.heroGlow, glowStyle]} />
-            {isIOS ? (
-              <SymbolView
-                name="storefront.fill"
-                tintColor={Colors.dark.gold}
-                size={40}
-              />
-            ) : (
-              <Feather name="shopping-bag" size={36} color={Colors.dark.gold} />
-            )}
+            <Animated.View style={floatStyle}>
+              {isIOS ? (
+                <SymbolView
+                  name="storefront.fill"
+                  tintColor={Colors.dark.gold}
+                  size={40}
+                />
+              ) : (
+                <Feather name="shopping-bag" size={36} color={Colors.dark.gold} />
+              )}
+            </Animated.View>
           </View>
           <Text style={styles.heroTitle}>Buy & sell gold, directly</Text>
           <Text style={styles.heroBody}>
@@ -247,7 +255,9 @@ export default function MarketScreen() {
         >
           {notified ? (
             <>
-              <Feather name="check" size={18} color={Colors.dark.gold} />
+              <Animated.View entering={ZoomIn.springify().damping(11)}>
+                <Feather name="check" size={18} color={Colors.dark.gold} />
+              </Animated.View>
               <Text style={styles.notifyTextDone}>
                 You're on the list — we'll let you know
               </Text>
