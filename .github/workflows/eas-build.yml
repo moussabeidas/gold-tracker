@@ -28,7 +28,15 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode.app
+        run: |
+          # Pick the newest Xcode on the runner — Apple requires the latest
+          # iOS SDK for App Store uploads, and /Applications/Xcode.app default
+          # varies between runner images.
+          XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE" ]; then XCODE=/Applications/Xcode.app; fi
+          echo "Selecting $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
 
       - name: Set up code signing
         env:
