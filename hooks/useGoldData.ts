@@ -10,7 +10,9 @@ export interface PricePoint {
   price: number;
 }
 
-const GOLD_SYMBOL = "XAUUSD=X";
+// Spot symbol first; COMEX futures as fallback — GC=F has decades of
+// complete history and tracks spot within a few dollars.
+const GOLD_SYMBOLS = ["XAUUSD=X", "GC=F"];
 
 // Yahoo chart parameters per range
 const RANGE_QUERY: Record<TimeRange, { range: string; interval: string }> = {
@@ -32,6 +34,17 @@ const CACHE_TTL_MS: Record<TimeRange, number> = {
   "6M": 60 * 60_000,
   "1Y": 60 * 60_000,
   "5Y": 6 * 60 * 60_000,
+};
+
+// A series must be reasonably complete before we trust it over the fallback
+const MIN_POINTS: Record<TimeRange, number> = {
+  "1D": 30,
+  "1W": 40,
+  "1M": 60,
+  "3M": 40,
+  "6M": 80,
+  "1Y": 160,
+  "5Y": 150,
 };
 
 const seriesCache = new Map<TimeRange, { at: number; data: PricePoint[] }>();
@@ -142,18 +155,29 @@ async function loadRealSeries(range: TimeRange): Promise<PricePoint[] | null> {
     return cached.data;
   }
   const q = RANGE_QUERY[range];
-  const candles = await fetchSeries(GOLD_SYMBOL, q.range, q.interval, 500, 20000);
-  if (!candles) return cached?.data ?? null;
-  const data: PricePoint[] = candles;
-  seriesCache.set(range, { at: Date.now(), data });
-  return data;
+
+  let best: PricePoint[] | null = null;
+  for (const symbol of GOLD_SYMBOLS) {
+    const candles = await fetchSeries(symbol, q.range, q.interval, 500, 20000);
+    if (!candles) continue;
+    if (!best || candles.length > best.length) best = candles;
+    if (candles.length >= MIN_POINTS[range]) break; // complete enough
+  }
+
+  if (!best) return cached?.data ?? null;
+  seriesCache.set(range, { at: Date.now(), data: best });
+  return best;
 }
 
 async function loadWeek52(): Promise<{ high: number; low: number } | null> {
   if (week52Cache && Date.now() - week52Cache.at < 60 * 60_000) {
     return week52Cache;
   }
-  const candles = await fetchSeries(GOLD_SYMBOL, "1y", "1d", 500, 20000);
+  let candles: Candle[] | null = null;
+  for (const symbol of GOLD_SYMBOLS) {
+    candles = await fetchSeries(symbol, "1y", "1d", 500, 20000);
+    if (candles && candles.length >= 160) break;
+  }
   if (!candles || !candles.length) return week52Cache;
   const prices = candles.map((c: Candle) => c.price);
   week52Cache = {
