@@ -200,6 +200,11 @@ export function useGoldData(range: TimeRange) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
+  const refresh = useCallback(async () => {
+    seriesCache.delete(range);
+    await load(anchorPrice);
+  }, [range, load, anchorPrice]);
+
   // If we're on synthetic data and the live anchor moves meaningfully
   // (e.g. first real fetch replacing the baseline), regenerate.
   useEffect(() => {
@@ -249,6 +254,7 @@ export function useGoldData(range: TimeRange) {
     isLive,
     isRealHistory,
     week52,
+    refresh,
     scale: anchorPrice / BASELINE_PRICE,
   };
 }

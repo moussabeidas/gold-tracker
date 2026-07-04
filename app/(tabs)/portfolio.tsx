@@ -14,7 +14,12 @@ import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  FadeOutUp,
+  LinearTransition,
+} from "react-native-reanimated";
 import Colors from "@/constants/colors";
 import { useGoldPrice, TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
 import { usePortfolio, GoldPurchase } from "@/context/PortfolioContext";
@@ -22,6 +27,7 @@ import { useSubscription, FREE_LIMIT } from "@/context/SubscriptionContext";
 import { useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
+import { CountUp } from "@/components/CountUp";
 
 function formatCurrency(n: number) {
   return n.toLocaleString("en-US", {
@@ -68,6 +74,8 @@ function PurchaseCard({
   return (
     <Animated.View
       entering={FadeInDown.delay(index * 60).duration(400).springify()}
+      exiting={FadeOutUp.duration(260)}
+      layout={LinearTransition.springify().damping(18)}
     >
       <View style={styles.card}>
         <View style={styles.cardTop}>
@@ -232,9 +240,11 @@ export default function PortfolioScreen() {
           style={styles.summaryCard}
         >
           <Text style={styles.summaryLabel}>Total Value</Text>
-          <Text style={styles.summaryValue}>
-            ${formatCurrency(currentTotalValue)}
-          </Text>
+          <CountUp
+            value={currentTotalValue}
+            prefix="$"
+            style={styles.summaryValue}
+          />
 
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>

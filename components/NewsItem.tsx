@@ -4,6 +4,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { Feather } from "@expo/vector-icons";
+import { AnimatedPressable } from "@/components/AnimatedPressable";
 
 export interface NewsArticle {
   id: string;
@@ -28,12 +29,9 @@ export function NewsItem({ article, isLast }: NewsItemProps) {
   };
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.container,
-        !isLast && styles.bordered,
-        pressed && article.url ? styles.pressed : null,
-      ]}
+    <AnimatedPressable
+      scaleDown={0.98}
+      style={[styles.container, !isLast && styles.bordered]}
       onPress={handlePress}
       disabled={!article.url}
     >
@@ -65,7 +63,7 @@ export function NewsItem({ article, isLast }: NewsItemProps) {
           <Feather name="file-text" size={20} color={Colors.dark.goldDim} />
         </View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

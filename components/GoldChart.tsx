@@ -10,7 +10,14 @@ import Svg, {
   Rect,
 } from "react-native-svg";
 import { PanResponder } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  useSharedValue,
+  useAnimatedProps,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 import { PricePoint } from "@/hooks/useGoldData";
 import Colors from "@/constants/colors";
 
@@ -57,8 +64,23 @@ interface GoldChartProps {
   onScrub?: (price: number | null, index: number | null) => void;
 }
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
 export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
   const [scrubX, setScrubX] = useState<number | null>(null);
+
+  // Breathing halo on the live endpoint of the line
+  const breathe = useSharedValue(0);
+  React.useEffect(() => {
+    breathe.value = withRepeat(
+      withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) }),
+      -1
+    );
+  }, [breathe]);
+  const haloProps = useAnimatedProps(() => ({
+    r: 4 + breathe.value * 11,
+    opacity: 0.45 * (1 - breathe.value),
+  }));
   const chartW = SCREEN_W - PADDING_HORIZONTAL * 2;
   const { path, min, max } = buildPath(data, chartW, CHART_HEIGHT);
   const areaPath = buildAreaPath(path, chartW, CHART_HEIGHT);
@@ -123,6 +145,8 @@ export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
   const scrubY =
     scrubIndex !== null ? getScrubY(scrubIndex) : null;
 
+  const endY = data.length ? getScrubY(data.length - 1) : null;
+
   return (
     <Animated.View
       entering={FadeIn.duration(450)}
@@ -146,6 +170,18 @@ export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+
+        {scrubX === null && endY !== null && (
+          <>
+            <AnimatedCircle
+              cx={chartW - 2}
+              cy={endY}
+              fill={lineColor}
+              animatedProps={haloProps}
+            />
+            <Circle cx={chartW - 2} cy={endY} r={3.5} fill={lineColor} />
+          </>
+        )}
 
         {scrubX !== null && scrubY !== null && (
           <>
