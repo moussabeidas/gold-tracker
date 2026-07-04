@@ -20,7 +20,7 @@ import { PriceHeader } from "@/components/PriceHeader";
 import { TimeRangeSelector } from "@/components/TimeRangeSelector";
 import { StatCard } from "@/components/StatCard";
 import { NewsItem } from "@/components/NewsItem";
-import { GOLD_NEWS } from "@/data/news";
+import { useGoldNews } from "@/hooks/useGoldNews";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -71,6 +71,7 @@ export default function GoldScreen() {
     week52,
     scale,
   } = useGoldData(range);
+  const { articles } = useGoldNews();
 
   const handleScrub = useCallback(
     (price: number | null, index: number | null) => {
@@ -231,11 +232,11 @@ export default function GoldScreen() {
       >
         <Text style={styles.sectionTitle}>News</Text>
         <View style={styles.newsCard}>
-          {GOLD_NEWS.map((article, i) => (
+          {articles.map((article, i) => (
             <NewsItem
               key={article.id}
               article={article}
-              isLast={i === GOLD_NEWS.length - 1}
+              isLast={i === articles.length - 1}
             />
           ))}
         </View>

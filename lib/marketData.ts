@@ -15,6 +15,16 @@ export interface Quote {
 }
 
 const BASE = "https://query1.finance.yahoo.com/v8/finance/chart";
+const SEARCH_BASE = "https://query1.finance.yahoo.com/v1/finance/search";
+
+export interface NewsStory {
+  id: string;
+  title: string;
+  publisher: string;
+  url: string;
+  publishedAt: number; // ms epoch
+  thumbnailUrl: string | null;
+}
 
 function plausible(v: unknown, lo: number, hi: number): v is number {
   return typeof v === "number" && isFinite(v) && v > lo && v < hi;
@@ -65,6 +75,50 @@ export async function fetchSeries(
   }
   // Require a reasonably complete series before trusting it
   return candles.length >= Math.min(10, timestamps.length) ? candles : null;
+}
+
+export async function fetchNews(
+  query: string,
+  count = 8
+): Promise<NewsStory[] | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const url = `${SEARCH_BASE}?q=${encodeURIComponent(query)}&newsCount=${count}&quotesCount=0`;
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const items: any[] = Array.isArray(json?.news) ? json.news : [];
+
+    const stories: NewsStory[] = [];
+    for (const item of items) {
+      if (typeof item?.title !== "string" || typeof item?.link !== "string") continue;
+      // Pick the smallest thumbnail that's still crisp at 72pt (≥140px)
+      const resolutions: any[] = item?.thumbnail?.resolutions ?? [];
+      const usable = resolutions
+        .filter((r) => typeof r?.url === "string" && (r?.width ?? 0) >= 140)
+        .sort((a, b) => (a.width ?? 0) - (b.width ?? 0));
+      stories.push({
+        id: String(item.uuid ?? item.link),
+        title: item.title,
+        publisher: typeof item.publisher === "string" ? item.publisher : "News",
+        url: item.link,
+        publishedAt:
+          typeof item.providerPublishTime === "number"
+            ? item.providerPublishTime * 1000
+            : Date.now(),
+        thumbnailUrl: usable[0]?.url ?? resolutions[0]?.url ?? null,
+      });
+    }
+    return stories.length ? stories : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function fetchQuote(
