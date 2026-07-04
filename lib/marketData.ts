@@ -92,6 +92,22 @@ export async function fetchGoldPriceOnDate(
   const cached = dateCache.get(dayKey);
   if (cached !== undefined) return cached;
 
+  const primary = await fetchPriceOnDateFor(symbol, dateMs);
+  if (primary !== null) {
+    dateCache.set(dayKey, primary);
+    return primary;
+  }
+  // COMEX futures fallback — deep history, tracks spot within dollars
+  const fallback = await fetchPriceOnDateFor("GC=F", dateMs);
+  if (fallback !== null) dateCache.set(dayKey, fallback);
+  return fallback;
+}
+
+async function fetchPriceOnDateFor(
+  symbol: string,
+  dateMs: number
+): Promise<number | null> {
+
   // Window of 10 days before → 1 day after covers weekends and holidays
   const period1 = Math.floor(dateMs / 1000) - 10 * 86400;
   const period2 = Math.floor(dateMs / 1000) + 86400;
@@ -120,7 +136,6 @@ export async function fetchGoldPriceOnDate(
         best = Math.round(c * 100) / 100;
       }
     }
-    if (best !== null) dateCache.set(dayKey, best);
     return best;
   } catch {
     return null;
