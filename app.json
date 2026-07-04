@@ -17,7 +17,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.mbeidas.goldtracker",
-      "buildNumber": "12",
+      "buildNumber": "13",
       "supportsTablet": false,
       "requireFullScreen": true,
       "infoPlist": {
@@ -42,6 +42,14 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.0"
+          }
+        }
+      ],
       "expo-font",
       "expo-web-browser",
       "expo-apple-authentication",
