@@ -8,8 +8,6 @@ import Animated, {
   useDerivedValue,
   withTiming,
   withDelay,
-  withSequence,
-  withRepeat,
   Easing,
   interpolate,
   runOnJS,
@@ -28,8 +26,6 @@ export function SplashAnimation({ onFinish }: Props) {
   const rotY = useSharedValue(1080);
   const coinScale = useSharedValue(0.35);
   const coinOpacity = useSharedValue(0);
-  // Glow behind the coin
-  const glow = useSharedValue(0);
   // Specular sweep across the face after the spin settles
   const shineX = useSharedValue(-COIN * 1.2);
   // Text
@@ -51,21 +47,6 @@ export function SplashAnimation({ onFinish }: Props) {
           runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
         }
       }
-    );
-
-    // Glow breathes in as the coin lands, then pulses gently
-    glow.value = withDelay(
-      900,
-      withSequence(
-        withTiming(1, { duration: 700, easing: Easing.out(Easing.quad) }),
-        withRepeat(
-          withSequence(
-            withTiming(0.72, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
-            withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) })
-          ),
-          -1
-        )
-      )
     );
 
     // Light sweep right after the coin settles
@@ -108,11 +89,6 @@ export function SplashAnimation({ onFinish }: Props) {
     opacity: edgeShade.value * 0.75,
   }));
 
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: glow.value * 0.85,
-    transform: [{ scale: 0.8 + glow.value * 0.35 }],
-  }));
-
   const shineStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shineX.value }, { rotate: "18deg" }],
   }));
@@ -128,9 +104,6 @@ export function SplashAnimation({ onFinish }: Props) {
 
   return (
     <Animated.View style={[styles.container, exitStyle]}>
-      {/* Warm radial glow behind the coin */}
-      <Animated.View style={[styles.glow, glowStyle]} pointerEvents="none" />
-
       {/* The coin — perspective rotateY gives the 3D flip */}
       <Animated.View style={[styles.coinWrap, coinStyle]}>
         <Image source={COIN_SOURCE} style={styles.coin} resizeMode="contain" />
@@ -169,18 +142,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 999,
-  },
-  glow: {
-    position: "absolute",
-    width: COIN * 1.9,
-    height: COIN * 1.9,
-    borderRadius: COIN,
-    backgroundColor: "rgba(255,203,64,0.16)",
-    shadowColor: Colors.dark.gold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 60,
-    elevation: 20,
   },
   coinWrap: {
     width: COIN,

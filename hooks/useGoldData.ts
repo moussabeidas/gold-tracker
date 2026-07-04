@@ -253,15 +253,19 @@ export function useGoldData(range: TimeRange) {
     };
   }, []);
 
-  // Keep the last chart point in sync with the ticking spot price
+  // Sync the last chart point with the confirmed price on each real fetch
+  // (every 30s) — not on every cosmetic 3s tick, which would rebuild the
+  // series and its SVG path constantly and stutter scrolling.
   useEffect(() => {
     setData((d) => {
       if (!d.length) return d;
+      const last = d[d.length - 1];
+      if (Math.abs(last.price - anchorPrice) < 0.01) return d;
       const updated = [...d];
-      updated[updated.length - 1] = { time: Date.now(), price: spotPrice };
+      updated[updated.length - 1] = { time: Date.now(), price: anchorPrice };
       return updated;
     });
-  }, [spotPrice]);
+  }, [anchorPrice]);
 
   const startPrice = data[0]?.price ?? spotPrice;
   const change = spotPrice - startPrice;

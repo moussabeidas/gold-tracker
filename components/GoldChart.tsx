@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { View, StyleSheet, Dimensions, Platform } from "react-native";
 import Svg, {
   Path,
@@ -82,8 +82,10 @@ export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
     opacity: 0.45 * (1 - breathe.value),
   }));
   const chartW = SCREEN_W - PADDING_HORIZONTAL * 2;
-  const { path, min, max } = buildPath(data, chartW, CHART_HEIGHT);
-  const areaPath = buildAreaPath(path, chartW, CHART_HEIGHT);
+  const { path, areaPath } = useMemo(() => {
+    const built = buildPath(data, chartW, CHART_HEIGHT);
+    return { path: built.path, areaPath: buildAreaPath(built.path, chartW, CHART_HEIGHT) };
+  }, [data, chartW]);
 
   const lineColor = isPositive ? Colors.dark.positive : Colors.dark.negative;
   const gradientColor = isPositive

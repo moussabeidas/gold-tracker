@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { FocusReveal } from "@/components/FocusReveal";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/lib/auth";
 import { usePortfolio } from "@/context/PortfolioContext";
@@ -115,17 +115,11 @@ export default function ProfileScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <Animated.Text
-        entering={FadeInDown.duration(350).springify()}
-        style={styles.pageTitle}
-      >
-        Profile
-      </Animated.Text>
+      <FocusReveal offset={12}>
+        <Text style={styles.pageTitle}>Profile</Text>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(70).duration(400).springify()}
-        style={styles.profileCard}
-      >
+      <FocusReveal delay={60} style={styles.profileCard}>
         <View style={styles.avatarContainer}>
           {user.profileImageUrl ? (
             <Image
@@ -144,12 +138,9 @@ export default function ProfileScreen() {
             <Text style={styles.profileEmail}>{user.email}</Text>
           ) : null}
         </View>
-      </Animated.View>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(150).duration(400).springify()}
-        style={styles.statsGrid}
-      >
+      <FocusReveal delay={130} style={styles.statsGrid}>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>{purchases.length}</Text>
           <Text style={styles.statLabel}>Holdings</Text>
@@ -166,12 +157,9 @@ export default function ProfileScreen() {
           </Text>
           <Text style={styles.statLabel}>Invested</Text>
         </View>
-      </Animated.View>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(220).duration(400).springify()}
-        style={styles.menuSection}
-      >
+      <FocusReveal delay={200} style={styles.menuSection}>
         <Text style={styles.sectionHeader}>Account</Text>
         <View style={styles.menuCard}>
           <MenuRow
@@ -186,12 +174,9 @@ export default function ProfileScreen() {
             isLast
           />
         </View>
-      </Animated.View>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(290).duration(400).springify()}
-        style={styles.menuSection}
-      >
+      <FocusReveal delay={260} style={styles.menuSection}>
         <Text style={styles.sectionHeader}>Data</Text>
         <View style={styles.menuCard}>
           <MenuRow
@@ -212,12 +197,9 @@ export default function ProfileScreen() {
             isLast
           />
         </View>
-      </Animated.View>
+      </FocusReveal>
 
-      <Animated.View
-        entering={FadeInDown.delay(360).duration(400).springify()}
-        style={styles.menuSection}
-      >
+      <FocusReveal delay={320} style={styles.menuSection}>
         <View style={styles.menuCard}>
           <MenuRow
             icon="log-out"
@@ -227,7 +209,7 @@ export default function ProfileScreen() {
             isLast
           />
         </View>
-      </Animated.View>
+      </FocusReveal>
     </ScrollView>
   );
 }
