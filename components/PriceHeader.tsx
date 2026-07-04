@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
@@ -6,6 +6,7 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
+  interpolateColor,
   Easing,
 } from "react-native-reanimated";
 import Colors from "@/constants/colors";
@@ -67,13 +68,44 @@ export function PriceHeader({
     : Colors.dark.negativeBackground;
   const iconName = isPositive ? "caret-up" : "caret-down";
 
+  // Tick animation: flash toward green/red and pulse slightly on each move
+  const flash = useSharedValue(0); // -1 down, 0 neutral, 1 up
+  const pulse = useSharedValue(1);
+  const prevPrice = useRef(currentPrice);
+
+  useEffect(() => {
+    const prev = prevPrice.current;
+    prevPrice.current = currentPrice;
+    if (prev === currentPrice) return;
+    const direction = currentPrice > prev ? 1 : -1;
+    flash.value = withSequence(
+      withTiming(direction, { duration: 120 }),
+      withTiming(0, { duration: 900, easing: Easing.out(Easing.quad) })
+    );
+    pulse.value = withSequence(
+      withTiming(1.015, { duration: 110, easing: Easing.out(Easing.quad) }),
+      withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) })
+    );
+  }, [currentPrice, flash, pulse]);
+
+  const priceStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(
+      flash.value,
+      [-1, 0, 1],
+      [Colors.dark.negative, Colors.dark.text, Colors.dark.positive]
+    ),
+    transform: [{ scale: pulse.value }],
+  }));
+
   return (
     <View style={styles.container}>
       <View style={styles.symbolRow}>
         <Text style={styles.symbol}>XAU/USD</Text>
         {isLive && scrubPrice === null && <LiveIndicator />}
       </View>
-      <Text style={styles.price}>${formatPrice(displayPrice)}</Text>
+      <Animated.Text style={[styles.price, scrubPrice === null && priceStyle]}>
+        ${formatPrice(displayPrice)}
+      </Animated.Text>
       {scrubPrice === null && (
         <View style={[styles.badge, { backgroundColor: bgColor }]}>
           <Ionicons name={iconName} size={11} color={color} style={styles.caret} />
@@ -133,6 +165,7 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
     letterSpacing: -1,
     lineHeight: 50,
+    fontVariant: ["tabular-nums"],
   },
   badge: {
     flexDirection: "row",
