@@ -26,38 +26,25 @@ interface MetalItem {
   featherIcon: string;
 }
 
-const METALS: MetalItem[] = [
-  {
-    symbol: "XAG",
-    name: "Silver",
-    price: "$34.18",
-    change: "-$0.42",
-    changePct: "-1.21%",
-    isPositive: false,
-    sfIcon: "circle.fill",
-    featherIcon: "circle",
-  },
-  {
-    symbol: "XPT",
-    name: "Platinum",
-    price: "$1,012.55",
-    change: "+$4.20",
-    changePct: "+0.42%",
-    isPositive: true,
-    sfIcon: "diamond.fill",
-    featherIcon: "hexagon",
-  },
-  {
-    symbol: "XPD",
-    name: "Palladium",
-    price: "$987.30",
-    change: "-$11.10",
-    changePct: "-1.11%",
-    isPositive: false,
-    sfIcon: "hexagon.fill",
-    featherIcon: "hexagon",
-  },
+// Static fallbacks shown until live quotes arrive
+const METAL_META: {
+  symbol: "XAG" | "XPT" | "XPD";
+  name: string;
+  fallbackPrice: number;
+  sfIcon: SFSymbol;
+  featherIcon: string;
+}[] = [
+  { symbol: "XAG", name: "Silver", fallbackPrice: 34.18, sfIcon: "circle.fill", featherIcon: "circle" },
+  { symbol: "XPT", name: "Platinum", fallbackPrice: 1012.55, sfIcon: "diamond.fill", featherIcon: "hexagon" },
+  { symbol: "XPD", name: "Palladium", fallbackPrice: 987.3, sfIcon: "hexagon.fill", featherIcon: "hexagon" },
 ];
+
+function formatUsd(n: number) {
+  return `$${n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
   const [pressed, setPressed] = useState(false);
@@ -107,7 +94,7 @@ function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
 
 export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
-  const { spotPrice, dayOpen } = useGoldPrice();
+  const { spotPrice, dayOpen, metals } = useGoldPrice();
   const topPad = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
 
   const goldChange = spotPrice - dayOpen;
@@ -115,17 +102,32 @@ export default function WatchlistScreen() {
   const goldItem: MetalItem = {
     symbol: "XAU",
     name: "Gold",
-    price: `$${spotPrice.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`,
+    price: formatUsd(spotPrice),
     change: `${goldChange >= 0 ? "+" : "-"}$${Math.abs(goldChange).toFixed(2)}`,
     changePct: `${goldChange >= 0 ? "+" : ""}${goldPct.toFixed(2)}%`,
     isPositive: goldChange >= 0,
     sfIcon: "seal.fill",
     featherIcon: "circle",
   };
-  const items = [goldItem, ...METALS];
+
+  const metalItems: MetalItem[] = METAL_META.map((m) => {
+    const quote = metals[m.symbol];
+    const price = quote?.price ?? m.fallbackPrice;
+    const pct = quote?.changePct ?? 0;
+    const changeAbs = quote ? Math.abs(price - quote.prevClose) : 0;
+    return {
+      symbol: m.symbol,
+      name: m.name,
+      price: formatUsd(price),
+      change: `${pct >= 0 ? "+" : "-"}$${changeAbs.toFixed(2)}`,
+      changePct: `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`,
+      isPositive: pct >= 0,
+      sfIcon: m.sfIcon,
+      featherIcon: m.featherIcon,
+    };
+  });
+
+  const items = [goldItem, ...metalItems];
 
   return (
     <ScrollView

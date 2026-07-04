@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 import { useGoldPrice, BASELINE_PRICE } from "@/context/GoldPriceContext";
+import { fetchSeries, type Candle } from "@/lib/marketData";
 
 export type TimeRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1Y" | "5Y";
 
@@ -9,22 +10,50 @@ export interface PricePoint {
   price: number;
 }
 
-// Historically grounded start prices for each range, expressed against the
-// BASELINE_PRICE. When the live price differs, every level is rescaled by the
-// same ratio so the chart's shape and percentage moves stay plausible.
-const RANGE_START: Record<TimeRange, number> = {
-  "1D": 3118.5,   // Today's open — tight intraday range ~$30
-  "1W": 3054.2,   // One week ago
-  "1M": 2971.8,   // One month ago
-  "3M": 2762.3,   // Three months ago
-  "6M": 2488.6,   // Six months ago
-  "1Y": 2164.4,   // One year ago
-  "5Y": 1682.0,   // Five years ago
+const GOLD_SYMBOL = "XAUUSD=X";
+
+// Yahoo chart parameters per range
+const RANGE_QUERY: Record<TimeRange, { range: string; interval: string }> = {
+  "1D": { range: "1d", interval: "1m" },
+  "1W": { range: "5d", interval: "15m" },
+  "1M": { range: "1mo", interval: "60m" },
+  "3M": { range: "3mo", interval: "1d" },
+  "6M": { range: "6mo", interval: "1d" },
+  "1Y": { range: "1y", interval: "1d" },
+  "5Y": { range: "5y", interval: "1wk" },
 };
 
-// Per-step log-volatility tuned to each range's typical daily move
+// Real-series cache: intraday goes stale fast, daily bars don't.
+const CACHE_TTL_MS: Record<TimeRange, number> = {
+  "1D": 60_000,
+  "1W": 5 * 60_000,
+  "1M": 15 * 60_000,
+  "3M": 60 * 60_000,
+  "6M": 60 * 60_000,
+  "1Y": 60 * 60_000,
+  "5Y": 6 * 60 * 60_000,
+};
+
+const seriesCache = new Map<TimeRange, { at: number; data: PricePoint[] }>();
+let week52Cache: { at: number; high: number; low: number } | null = null;
+
+// ---------------------------------------------------------------------------
+// Synthetic fallback (offline / API failure only). Historically grounded
+// start prices expressed against BASELINE_PRICE; rescaled to the live level.
+// ---------------------------------------------------------------------------
+
+const RANGE_START: Record<TimeRange, number> = {
+  "1D": 3118.5,
+  "1W": 3054.2,
+  "1M": 2971.8,
+  "3M": 2762.3,
+  "6M": 2488.6,
+  "1Y": 2164.4,
+  "5Y": 1682.0,
+};
+
 const RANGE_VOL: Record<TimeRange, number> = {
-  "1D": 0.00038,  // ~0.04%/min → realistic intraday range of ~$20-35
+  "1D": 0.00038,
   "1W": 0.0048,
   "1M": 0.0082,
   "3M": 0.0095,
@@ -33,18 +62,16 @@ const RANGE_VOL: Record<TimeRange, number> = {
   "5Y": 0.0160,
 };
 
-// Number of data points per range
 const RANGE_POINTS: Record<TimeRange, number> = {
-  "1D": 390,   // 1-minute bars across a 6.5-hour session
-  "1W": 168,   // Hourly bars for 7 days
+  "1D": 390,
+  "1W": 168,
   "1M": 30,
   "3M": 90,
   "6M": 180,
-  "1Y": 252,   // Trading days
-  "5Y": 260,   // Weekly bars
+  "1Y": 252,
+  "5Y": 260,
 };
 
-// Milliseconds between each data point
 const RANGE_INTERVAL_MS: Record<TimeRange, number> = {
   "1D": 60 * 1000,
   "1W": 60 * 60 * 1000,
@@ -55,7 +82,6 @@ const RANGE_INTERVAL_MS: Record<TimeRange, number> = {
   "5Y": 7 * 24 * 60 * 60 * 1000,
 };
 
-// Seeded LCG — deterministic per range so the chart is stable between renders
 function seededRng(seed: number) {
   let s = seed >>> 0;
   return function (): number {
@@ -64,7 +90,6 @@ function seededRng(seed: number) {
   };
 }
 
-// Box-Muller transform: uniform → Gaussian
 function gaussian(rng: () => number): number {
   const u1 = Math.max(rng(), 1e-10);
   const u2 = rng();
@@ -79,57 +104,28 @@ function generateData(range: TimeRange, endPrice: number): PricePoint[] {
   const scale = endPrice / BASELINE_PRICE;
   const startPrice = RANGE_START[range] * scale;
 
-  // Unique seed per range — always same shape for same range
   const seed = range.split("").reduce((acc, c, i) => acc + c.charCodeAt(0) * (i + 7) * 31, 1337);
   const rng = seededRng(seed);
 
-  // Log-space drift that steers start → end over n steps (base drift)
   const baseDrift = (Math.log(endPrice) - Math.log(startPrice)) / n;
-
   const logPrices: number[] = [Math.log(startPrice)];
 
   for (let i = 1; i < n; i++) {
     const prev = logPrices[i - 1];
     const remaining = n - i;
-
-    // Gentle bridge pull in last 15% of points so we land near current price
     const bridgePull =
       remaining < n * 0.15
         ? ((Math.log(endPrice) - prev) / Math.max(remaining, 1)) * 0.5
         : 0;
-
-    // Occasionally spike volatility (news events, macro data releases)
     const volMultiplier = rng() < 0.03 ? 2.0 + rng() * 2.0 : 1.0;
-
     const step = baseDrift + bridgePull + vol * volMultiplier * gaussian(rng);
     logPrices.push(prev + step);
   }
 
   let prices = logPrices.map((lp) => Math.round(Math.exp(lp) * 100) / 100);
-
-  // Clamp to a plausible band around the current level
   prices = prices.map((p) =>
     Math.min(endPrice * 1.6, Math.max(endPrice * 0.3, p))
   );
-
-  // Insert sideways consolidation zones (realistic market texture)
-  if (range !== "1D" && range !== "1W") {
-    let cursor = Math.floor(rng() * n * 0.25);
-    while (cursor < n * 0.78) {
-      if (rng() < 0.28) {
-        const zoneLen = 4 + Math.floor(rng() * 12);
-        const level = prices[cursor];
-        const band = level * 0.004;
-        for (let j = cursor; j < Math.min(cursor + zoneLen, n - 2); j++) {
-          prices[j] = Math.round((level + (rng() - 0.5) * 2 * band) * 100) / 100;
-        }
-        cursor += zoneLen;
-      }
-      cursor += 2 + Math.floor(rng() * 6);
-    }
-  }
-
-  // Pin last point to exact current price
   prices[prices.length - 1] = endPrice;
 
   return prices.map((price, i) => ({
@@ -138,24 +134,63 @@ function generateData(range: TimeRange, endPrice: number): PricePoint[] {
   }));
 }
 
+// ---------------------------------------------------------------------------
+
+async function loadRealSeries(range: TimeRange): Promise<PricePoint[] | null> {
+  const cached = seriesCache.get(range);
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS[range]) {
+    return cached.data;
+  }
+  const q = RANGE_QUERY[range];
+  const candles = await fetchSeries(GOLD_SYMBOL, q.range, q.interval, 500, 20000);
+  if (!candles) return cached?.data ?? null;
+  const data: PricePoint[] = candles;
+  seriesCache.set(range, { at: Date.now(), data });
+  return data;
+}
+
+async function loadWeek52(): Promise<{ high: number; low: number } | null> {
+  if (week52Cache && Date.now() - week52Cache.at < 60 * 60_000) {
+    return week52Cache;
+  }
+  const candles = await fetchSeries(GOLD_SYMBOL, "1y", "1d", 500, 20000);
+  if (!candles || !candles.length) return week52Cache;
+  const prices = candles.map((c: Candle) => c.price);
+  week52Cache = {
+    at: Date.now(),
+    high: Math.max(...prices),
+    low: Math.min(...prices),
+  };
+  return week52Cache;
+}
+
 export function useGoldData(range: TimeRange) {
   const { spotPrice, anchorPrice, isLive } = useGoldPrice();
   const [data, setData] = useState<PricePoint[]>([]);
+  const [isRealHistory, setIsRealHistory] = useState(false);
+  const [week52, setWeek52] = useState<{ high: number; low: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Anchor the generated history was built against; regenerate only when the
-  // live price moves meaningfully (e.g. first real fetch replacing baseline),
-  // not on every 30s poll.
   const generatedAnchor = useRef<number | null>(null);
+  const requestId = useRef(0);
 
   const load = useCallback(
-    (anchor: number) => {
+    async (anchor: number) => {
+      const id = ++requestId.current;
       setIsLoading(true);
       generatedAnchor.current = anchor;
-      setTimeout(() => {
+
+      const real = await loadRealSeries(range);
+      if (id !== requestId.current) return; // superseded by a newer request
+
+      if (real && real.length) {
+        setData(real);
+        setIsRealHistory(true);
+      } else {
         setData(generateData(range, anchor));
-        setIsLoading(false);
-      }, 300);
+        setIsRealHistory(false);
+      }
+      setIsLoading(false);
     },
     [range]
   );
@@ -165,12 +200,29 @@ export function useGoldData(range: TimeRange) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
+  // If we're on synthetic data and the live anchor moves meaningfully
+  // (e.g. first real fetch replacing the baseline), regenerate.
   useEffect(() => {
     const prev = generatedAnchor.current;
-    if (prev !== null && Math.abs(anchorPrice - prev) / prev > 0.003) {
+    if (
+      !isRealHistory &&
+      prev !== null &&
+      Math.abs(anchorPrice - prev) / prev > 0.003
+    ) {
       load(anchorPrice);
     }
-  }, [anchorPrice, load]);
+  }, [anchorPrice, isRealHistory, load]);
+
+  // 52-week stats from real daily candles
+  useEffect(() => {
+    let cancelled = false;
+    loadWeek52().then((w) => {
+      if (!cancelled && w) setWeek52({ high: w.high, low: w.low });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Keep the last chart point in sync with the ticking spot price
   useEffect(() => {
@@ -195,6 +247,8 @@ export function useGoldData(range: TimeRange) {
     isPositive,
     isLoading,
     isLive,
+    isRealHistory,
+    week52,
     scale: anchorPrice / BASELINE_PRICE,
   };
 }

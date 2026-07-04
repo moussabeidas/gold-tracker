@@ -6,9 +6,12 @@ import React, {
   useRef,
   type ReactNode,
 } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Fallback XAU/USD baseline used until the first live fetch succeeds
-// (and permanently if the device is offline).
+import { fetchQuote, type Quote } from "@/lib/marketData";
+
+// Last-resort XAU/USD baseline, used only on a fresh install that has
+// never seen a live price and is offline.
 export const BASELINE_PRICE = 3150.4;
 export const TROY_OUNCE_GRAMS = 31.1035;
 
@@ -16,23 +19,29 @@ export const TROY_OUNCE_GRAMS = 31.1035;
 const PRICE_API_URL = "https://api.gold-api.com/price/XAU";
 const FETCH_INTERVAL_MS = 30_000;
 const TICK_INTERVAL_MS = 3_000;
+const METALS_INTERVAL_MS = 5 * 60_000;
+const LAST_SPOT_KEY = "@gold_last_spot_v1";
 
-// Today's open sits slightly below spot; same ratio the 1D chart uses so the
-// change badge on the watchlist agrees with the chart tab.
+// Approximate session open relative to spot, used only until real history
+// arrives (the chart hook replaces day-change math with real data).
 const DAY_OPEN_RATIO = 3118.5 / 3150.4;
+
+export type MetalSymbol = "XAG" | "XPT" | "XPD";
 
 interface GoldPriceContextValue {
   /** Ticking display price in USD per troy ounce */
   spotPrice: number;
-  /** Last confirmed price (live fetch, or baseline when offline) */
+  /** Last confirmed price (live fetch, persisted cache, or baseline) */
   anchorPrice: number;
   /** Ticking price in USD per gram */
   pricePerGram: number;
-  /** Approximate session open, for day-change calculations */
+  /** Approximate session open, for day-change fallbacks */
   dayOpen: number;
-  /** True once a real market price has been fetched */
+  /** True once a real market price has been fetched this session */
   isLive: boolean;
   lastUpdated: number | null;
+  /** Live silver/platinum/palladium quotes (null until fetched) */
+  metals: Partial<Record<MetalSymbol, Quote>>;
 }
 
 const GoldPriceContext = createContext<GoldPriceContextValue>({
@@ -42,19 +51,47 @@ const GoldPriceContext = createContext<GoldPriceContextValue>({
   dayOpen: BASELINE_PRICE * DAY_OPEN_RATIO,
   isLive: false,
   lastUpdated: null,
+  metals: {},
 });
 
 function isPlausiblePrice(value: unknown): value is number {
   return typeof value === "number" && isFinite(value) && value > 500 && value < 20000;
 }
 
+const METAL_YAHOO: Record<MetalSymbol, string> = {
+  XAG: "XAGUSD=X",
+  XPT: "XPTUSD=X",
+  XPD: "XPDUSD=X",
+};
+
 export function GoldPriceProvider({ children }: { children: ReactNode }) {
   const [spotPrice, setSpotPrice] = useState(BASELINE_PRICE);
   const [anchorPrice, setAnchorPrice] = useState(BASELINE_PRICE);
   const [isLive, setIsLive] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [metals, setMetals] = useState<Partial<Record<MetalSymbol, Quote>>>({});
 
   const anchorRef = useRef(BASELINE_PRICE);
+  const liveRef = useRef(false);
+
+  const applyAnchor = (price: number) => {
+    anchorRef.current = price;
+    setAnchorPrice(price);
+    setSpotPrice(price);
+  };
+
+  // Restore the last real price immediately so an offline launch never
+  // shows the stale hardcoded baseline.
+  useEffect(() => {
+    AsyncStorage.getItem(LAST_SPOT_KEY)
+      .then((raw) => {
+        const cached = raw ? Number(raw) : NaN;
+        if (!liveRef.current && isPlausiblePrice(cached)) {
+          applyAnchor(cached);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Poll the live spot price.
   useEffect(() => {
@@ -69,11 +106,11 @@ export function GoldPriceProvider({ children }: { children: ReactNode }) {
         const json = await res.json();
         if (cancelled || !isPlausiblePrice(json?.price)) return;
         const price = Math.round(json.price * 100) / 100;
-        anchorRef.current = price;
-        setAnchorPrice(price);
-        setSpotPrice(price);
+        liveRef.current = true;
+        applyAnchor(price);
         setIsLive(true);
         setLastUpdated(Date.now());
+        AsyncStorage.setItem(LAST_SPOT_KEY, String(price)).catch(() => {});
       } catch {
         // Offline or API unavailable — keep ticking around the last anchor.
       } finally {
@@ -83,6 +120,33 @@ export function GoldPriceProvider({ children }: { children: ReactNode }) {
 
     fetchPrice();
     const interval = setInterval(fetchPrice, FETCH_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Live silver / platinum / palladium quotes, refreshed every 5 minutes.
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchMetals = async () => {
+      const symbols = Object.keys(METAL_YAHOO) as MetalSymbol[];
+      const results = await Promise.all(
+        symbols.map((s) => fetchQuote(METAL_YAHOO[s], 1, 20000))
+      );
+      if (cancelled) return;
+      setMetals((prev) => {
+        const next = { ...prev };
+        symbols.forEach((s, i) => {
+          if (results[i]) next[s] = results[i]!;
+        });
+        return next;
+      });
+    };
+
+    fetchMetals();
+    const interval = setInterval(fetchMetals, METALS_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -111,6 +175,7 @@ export function GoldPriceProvider({ children }: { children: ReactNode }) {
         dayOpen: anchorPrice * DAY_OPEN_RATIO,
         isLive,
         lastUpdated,
+        metals,
       }}
     >
       {children}

@@ -68,6 +68,7 @@ export default function GoldScreen() {
     isPositive,
     isLoading,
     isLive,
+    week52,
     scale,
   } = useGoldData(range);
 
@@ -114,12 +115,17 @@ export default function GoldScreen() {
     },
     {
       label: "52W High",
-      value: `$${formatPrice(Math.max(3217.4 * scale, currentPrice))}`,
+      value: `$${formatPrice(
+        week52 ? Math.max(week52.high, currentPrice) : Math.max(3217.4 * scale, currentPrice)
+      )}`,
     },
   ];
 
   const statsRow3 = [
-    { label: "52W Low", value: `$${formatPrice(2164.4 * scale)}` },
+    {
+      label: "52W Low",
+      value: `$${formatPrice(week52 ? week52.low : 2164.4 * scale)}`,
+    },
     { label: "Volume", value: "$148.2B" },
   ];
 
