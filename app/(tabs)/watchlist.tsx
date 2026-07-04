@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import Colors from "@/constants/colors";
-import { useGoldPrice } from "@/context/GoldPriceContext";
+import { useGoldPrice, useSpotPrice } from "@/context/GoldPriceContext";
 import * as Haptics from "expo-haptics";
 import { FocusReveal } from "@/components/FocusReveal";
 import Animated, {
@@ -144,11 +144,9 @@ function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
   );
 }
 
-export default function WatchlistScreen() {
-  const insets = useSafeAreaInsets();
-  const { spotPrice, dayOpen, metals } = useGoldPrice();
-  const topPad = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
-
+// Isolated so the 3s price tick re-renders this row only, not the screen
+function LiveGoldRow({ dayOpen }: { dayOpen: number }) {
+  const spotPrice = useSpotPrice();
   const goldChange = spotPrice - dayOpen;
   const goldPct = dayOpen ? (goldChange / dayOpen) * 100 : 0;
   const goldItem: MetalItem = {
@@ -162,6 +160,13 @@ export default function WatchlistScreen() {
     sfIcon: "seal.fill",
     featherIcon: "circle",
   };
+  return <MetalRow item={goldItem} />;
+}
+
+export default function WatchlistScreen() {
+  const insets = useSafeAreaInsets();
+  const { dayOpen, metals } = useGoldPrice();
+  const topPad = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
 
   const metalItems: MetalItem[] = METAL_META.map((m) => {
     const quote = metals[m.symbol];
@@ -180,7 +185,6 @@ export default function WatchlistScreen() {
     };
   });
 
-  const items = [goldItem, ...metalItems];
 
   return (
     <ScrollView
@@ -202,8 +206,9 @@ export default function WatchlistScreen() {
       </FocusReveal>
 
       <FocusReveal delay={60} style={styles.card}>
-        {items.map((item, i) => (
-          <MetalRow key={item.symbol} item={item} isLast={i === items.length - 1} />
+        <LiveGoldRow dayOpen={dayOpen} />
+        {metalItems.map((item, i) => (
+          <MetalRow key={item.symbol} item={item} isLast={i === metalItems.length - 1} />
         ))}
       </FocusReveal>
 

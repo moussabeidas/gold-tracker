@@ -189,7 +189,7 @@ async function loadWeek52(): Promise<{ high: number; low: number } | null> {
 }
 
 export function useGoldData(range: TimeRange) {
-  const { spotPrice, anchorPrice, isLive } = useGoldPrice();
+  const { anchorPrice, isLive } = useGoldPrice();
   const [data, setData] = useState<PricePoint[]>([]);
   const [isRealHistory, setIsRealHistory] = useState(false);
   const [week52, setWeek52] = useState<{ high: number; low: number } | null>(null);
@@ -267,14 +267,14 @@ export function useGoldData(range: TimeRange) {
     });
   }, [anchorPrice]);
 
-  const startPrice = data[0]?.price ?? spotPrice;
-  const change = spotPrice - startPrice;
+  const startPrice = data[0]?.price ?? anchorPrice;
+  const change = anchorPrice - startPrice;
   const changePct = startPrice ? (change / startPrice) * 100 : 0;
   const isPositive = change >= 0;
 
   return {
     data,
-    currentPrice: spotPrice,
+    currentPrice: anchorPrice,
     change,
     changePct,
     isPositive,

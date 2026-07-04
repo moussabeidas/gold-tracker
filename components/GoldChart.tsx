@@ -118,9 +118,12 @@ export function GoldChart({ data, isPositive, onScrub }: GoldChartProps) {
     [data]
   );
 
+  // Claim the gesture only for horizontal drags so vertical scrolling
+  // that starts on the chart passes through to the ScrollView.
   const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_e, gs) =>
+      Math.abs(gs.dx) > 8 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.4,
     onPanResponderGrant: (e) => {
       const x = e.nativeEvent.locationX;
       setScrubX(x);

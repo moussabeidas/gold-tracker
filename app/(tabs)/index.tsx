@@ -207,23 +207,6 @@ export default function GoldScreen() {
         ))}
       </View>
 
-      <FocusReveal delay={260} style={styles.aboutSection}>
-        <View style={styles.aboutCard}>
-          <Text style={styles.aboutTitle}>About Gold (XAU)</Text>
-          <Text style={styles.aboutBody}>
-            Gold is a precious metal with the chemical symbol Au and atomic
-            number 79. Priced in US dollars per troy ounce, XAU/USD is one of
-            the world's most widely traded commodities. Gold serves as a
-            universal store of value and a safe-haven asset during periods of
-            economic uncertainty or geopolitical tension.{"\n\n"}Gold is mined
-            on every continent except Antarctica and is held as reserves by
-            central banks worldwide. Its price is influenced by interest rates,
-            US dollar strength, inflation expectations, and global risk
-            sentiment.
-          </Text>
-        </View>
-      </FocusReveal>
-
       <FocusReveal delay={330} style={styles.newsSection}>
         <Text style={styles.sectionTitle}>News</Text>
         <View style={styles.newsCard}>
@@ -278,27 +261,6 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     gap: 10,
-  },
-  aboutSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  aboutCard: {
-    backgroundColor: Colors.dark.surfaceElevated,
-    borderRadius: 14,
-    padding: 16,
-    gap: 10,
-  },
-  aboutTitle: {
-    fontSize: 17,
-    color: Colors.dark.text,
-    fontFamily: "Inter_700Bold",
-  },
-  aboutBody: {
-    fontSize: 14,
-    color: Colors.dark.textSecondary,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 21,
   },
   newsSection: {
     gap: 12,

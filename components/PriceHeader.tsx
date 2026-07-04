@@ -10,6 +10,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import Colors from "@/constants/colors";
+import { useSpotPrice } from "@/context/GoldPriceContext";
 import { Ionicons } from "@expo/vector-icons";
 
 interface PriceHeaderProps {
@@ -61,7 +62,8 @@ export function PriceHeader({
   scrubPrice,
   isLive = false,
 }: PriceHeaderProps) {
-  const displayPrice = scrubPrice ?? currentPrice;
+  const spotPrice = useSpotPrice();
+  const displayPrice = scrubPrice ?? spotPrice;
   const color = isPositive ? Colors.dark.positive : Colors.dark.negative;
   const bgColor = isPositive
     ? Colors.dark.positiveBackground
@@ -71,13 +73,13 @@ export function PriceHeader({
   // Tick animation: flash toward green/red and pulse slightly on each move
   const flash = useSharedValue(0); // -1 down, 0 neutral, 1 up
   const pulse = useSharedValue(1);
-  const prevPrice = useRef(currentPrice);
+  const prevPrice = useRef(spotPrice);
 
   useEffect(() => {
     const prev = prevPrice.current;
-    prevPrice.current = currentPrice;
-    if (prev === currentPrice) return;
-    const direction = currentPrice > prev ? 1 : -1;
+    prevPrice.current = spotPrice;
+    if (prev === spotPrice) return;
+    const direction = spotPrice > prev ? 1 : -1;
     flash.value = withSequence(
       withTiming(direction, { duration: 120 }),
       withTiming(0, { duration: 900, easing: Easing.out(Easing.quad) })
@@ -86,7 +88,7 @@ export function PriceHeader({
       withTiming(1.015, { duration: 110, easing: Easing.out(Easing.quad) }),
       withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) })
     );
-  }, [currentPrice, flash, pulse]);
+  }, [spotPrice, flash, pulse]);
 
   const priceStyle = useAnimatedStyle(() => ({
     color: interpolateColor(
