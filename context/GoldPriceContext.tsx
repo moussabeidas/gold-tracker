@@ -3,6 +3,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useMemo,
   useRef,
   type ReactNode,
 } from "react";
@@ -29,8 +30,6 @@ const DAY_OPEN_RATIO = 3118.5 / 3150.4;
 export type MetalSymbol = "XAG" | "XPT" | "XPD";
 
 interface GoldPriceContextValue {
-  /** Ticking display price in USD per troy ounce */
-  spotPrice: number;
   /** Last confirmed price (live fetch, persisted cache, or baseline) */
   anchorPrice: number;
   /** Ticking price in USD per gram */
@@ -44,8 +43,12 @@ interface GoldPriceContextValue {
   metals: Partial<Record<MetalSymbol, Quote>>;
 }
 
+// The 3s ticking price lives in its own context so ONLY the components
+// that display it re-render on ticks — everything else subscribes to the
+// slow-moving anchor (30s) and stays quiet while the user scrolls.
+const SpotTickContext = createContext<number>(BASELINE_PRICE);
+
 const GoldPriceContext = createContext<GoldPriceContextValue>({
-  spotPrice: BASELINE_PRICE,
   anchorPrice: BASELINE_PRICE,
   pricePerGram: BASELINE_PRICE / TROY_OUNCE_GRAMS,
   dayOpen: BASELINE_PRICE * DAY_OPEN_RATIO,
@@ -166,21 +169,30 @@ export function GoldPriceProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(tick);
   }, []);
 
+  const slowValue = useMemo(
+    () => ({
+      anchorPrice,
+      pricePerGram: anchorPrice / TROY_OUNCE_GRAMS,
+      dayOpen: anchorPrice * DAY_OPEN_RATIO,
+      isLive,
+      lastUpdated,
+      metals,
+    }),
+    [anchorPrice, isLive, lastUpdated, metals]
+  );
+
   return (
-    <GoldPriceContext.Provider
-      value={{
-        spotPrice,
-        anchorPrice,
-        pricePerGram: spotPrice / TROY_OUNCE_GRAMS,
-        dayOpen: anchorPrice * DAY_OPEN_RATIO,
-        isLive,
-        lastUpdated,
-        metals,
-      }}
-    >
-      {children}
+    <GoldPriceContext.Provider value={slowValue}>
+      <SpotTickContext.Provider value={spotPrice}>
+        {children}
+      </SpotTickContext.Provider>
     </GoldPriceContext.Provider>
   );
+}
+
+/** The 3s ticking display price — subscribe ONLY in leaf components. */
+export function useSpotPrice(): number {
+  return useContext(SpotTickContext);
 }
 
 export function useGoldPrice(): GoldPriceContextValue {
