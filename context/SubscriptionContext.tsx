@@ -22,11 +22,12 @@ import {
   type Purchase,
 } from "expo-iap";
 
-export type PlanId = "free" | "tracker_monthly" | "lifetime";
+export type PlanId = "free" | "tracker_monthly" | "tracker_annual" | "lifetime";
 
 // Product identifiers — must match the In-App Purchases created in
 // App Store Connect exactly.
 export const SKU_MONTHLY = "goldpricer.pro.monthly"; // auto-renewable
+export const SKU_ANNUAL = "goldpricer.pro.annual"; // auto-renewable
 export const SKU_LIFETIME = "goldpricer.pro.lifetime"; // non-consumable
 
 export interface SubscriptionState {
@@ -34,7 +35,8 @@ export interface SubscriptionState {
 }
 
 export interface PlanPricing {
-  monthly: string; // localized price string, e.g. "$0.99"
+  monthly: string; // localized price strings, e.g. "$4.99"
+  annual: string;
   lifetime: string;
 }
 
@@ -57,7 +59,11 @@ interface SubscriptionContextValue {
 
 const FREE_LIMIT = 2;
 const STORAGE_KEY = "@gold_subscription_v2";
-const FALLBACK_PRICING: PlanPricing = { monthly: "$0.99", lifetime: "$9.99" };
+const FALLBACK_PRICING: PlanPricing = {
+  monthly: "$4.99",
+  annual: "$29.99",
+  lifetime: "$79.99",
+};
 
 const SubscriptionContext = createContext<SubscriptionContextValue>({
   subscription: { planId: "free" },
@@ -73,6 +79,7 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
 
 function planForSku(sku: string): PlanId | null {
   if (sku === SKU_MONTHLY) return "tracker_monthly";
+  if (sku === SKU_ANNUAL) return "tracker_annual";
   if (sku === SKU_LIFETIME) return "lifetime";
   return null;
 }
@@ -141,16 +148,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           fetchProducts({ skus: [SKU_LIFETIME], type: "in-app" }).catch(
             () => [] as Product[]
           ),
-          fetchProducts({ skus: [SKU_MONTHLY], type: "subs" }).catch(
+          fetchProducts({ skus: [SKU_MONTHLY, SKU_ANNUAL], type: "subs" }).catch(
             () => [] as Product[]
           ),
         ]);
         const lifetime = (products ?? []).find((p) => p.id === SKU_LIFETIME);
         const monthly = (subs ?? []).find((p) => p.id === SKU_MONTHLY);
-        if (lifetime || monthly) {
+        const annual = (subs ?? []).find((p) => p.id === SKU_ANNUAL);
+        if (lifetime || monthly || annual) {
           setPricing({
             lifetime: lifetime?.displayPrice ?? FALLBACK_PRICING.lifetime,
             monthly: monthly?.displayPrice ?? FALLBACK_PRICING.monthly,
+            annual: annual?.displayPrice ?? FALLBACK_PRICING.annual,
           });
           setStoreReady(true);
         }
@@ -186,7 +195,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         });
       } else {
         await requestPurchase({
-          request: { apple: { sku: SKU_MONTHLY } },
+          request: {
+            apple: { sku: planId === "tracker_annual" ? SKU_ANNUAL : SKU_MONTHLY },
+          },
           type: "subs",
         });
       }
@@ -200,13 +211,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const owned = purchases
         .map((p) => planForSku(p.productId))
         .filter(Boolean) as PlanId[];
-      if (owned.includes("lifetime")) {
-        await applyPlan("lifetime");
-        return true;
-      }
-      if (owned.includes("tracker_monthly")) {
-        await applyPlan("tracker_monthly");
-        return true;
+      for (const plan of ["lifetime", "tracker_annual", "tracker_monthly"] as const) {
+        if (owned.includes(plan)) {
+          await applyPlan(plan);
+          return true;
+        }
       }
       return false;
     } catch {

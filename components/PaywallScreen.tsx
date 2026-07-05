@@ -39,7 +39,7 @@ const FEATURES = [
 export function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const { subscribe, restore, pricing, storeReady, isPro } = useSubscription();
-  const [selected, setSelected] = useState<PaidPlan>("lifetime");
+  const [selected, setSelected] = useState<PaidPlan>("tracker_annual");
   const [busy, setBusy] = useState(false);
 
   // The preferred plan breathes: a gold glow cycles on its border
@@ -99,14 +99,16 @@ export function PaywallScreen() {
     price: string;
     period: string;
     note: string;
+    badge?: string;
     preferred: boolean;
   }[] = [
     {
-      id: "lifetime",
-      label: "Lifetime",
-      price: pricing.lifetime,
-      period: "one-time",
-      note: "Pay once, own it forever",
+      id: "tracker_annual",
+      label: "Annual",
+      price: pricing.annual,
+      period: "per year",
+      note: "Just $2.50 / month",
+      badge: "BEST VALUE · 50% OFF",
       preferred: true,
     },
     {
@@ -115,6 +117,14 @@ export function PaywallScreen() {
       price: pricing.monthly,
       period: "per month",
       note: "Cancel anytime",
+      preferred: false,
+    },
+    {
+      id: "lifetime",
+      label: "Lifetime",
+      price: pricing.lifetime,
+      period: "one-time",
+      note: "Pay once, own it forever",
       preferred: false,
     },
   ];
@@ -183,9 +193,9 @@ export function PaywallScreen() {
               <View style={styles.planLeft}>
                 <View style={styles.planLabelRow}>
                   <Text style={styles.planLabel}>{plan.label}</Text>
-                  {plan.preferred && (
+                  {plan.badge && (
                     <View style={styles.badge}>
-                      <Text style={styles.badgeText}>BEST VALUE</Text>
+                      <Text style={styles.badgeText}>{plan.badge}</Text>
                     </View>
                   )}
                 </View>
@@ -237,7 +247,11 @@ export function PaywallScreen() {
           ) : (
             <Text style={styles.ctaText}>
               Continue —{" "}
-              {selected === "lifetime" ? pricing.lifetime : `${pricing.monthly}/mo`}
+              {selected === "lifetime"
+                ? pricing.lifetime
+                : selected === "tracker_annual"
+                  ? `${pricing.annual}/yr`
+                  : `${pricing.monthly}/mo`}
             </Text>
           )}
         </AnimatedPressable>
@@ -252,7 +266,7 @@ export function PaywallScreen() {
 
         <Text style={styles.finePrint}>
           {storeReady
-            ? "Payment is charged to your Apple ID. Monthly renews automatically until canceled in Settings → Apple ID → Subscriptions at least 24h before the period ends. Lifetime is a one-time purchase."
+            ? "Payment is charged to your Apple ID through the App Store. Monthly and Annual renew automatically until canceled in Settings → Apple ID → Subscriptions at least 24h before the period ends. Lifetime is a one-time purchase."
             : "Store connection unavailable — purchases can't be completed right now."}
         </Text>
       </Animated.View>
