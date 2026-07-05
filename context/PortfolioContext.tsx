@@ -24,6 +24,10 @@ interface PortfolioContextValue {
   purchases: GoldPurchase[];
   isLoading: boolean;
   addPurchase: (purchase: Omit<GoldPurchase, "id" | "createdAt">) => Promise<void>;
+  updatePurchase: (
+    id: string,
+    changes: Partial<Omit<GoldPurchase, "id" | "createdAt">>
+  ) => Promise<void>;
   removePurchase: (id: string) => Promise<void>;
   totalWeightGrams: number;
   totalInvested: number;
@@ -33,6 +37,7 @@ const PortfolioContext = createContext<PortfolioContextValue>({
   purchases: [],
   isLoading: true,
   addPurchase: async () => {},
+  updatePurchase: async () => {},
   removePurchase: async () => {},
   totalWeightGrams: 0,
   totalInvested: 0,
@@ -92,6 +97,22 @@ export function PortfolioProvider({
     [persist]
   );
 
+  const updatePurchase = useCallback(
+    async (
+      id: string,
+      changes: Partial<Omit<GoldPurchase, "id" | "createdAt">>
+    ) => {
+      setPurchases((prev) => {
+        const updated = prev.map((p) =>
+          p.id === id ? { ...p, ...changes } : p
+        );
+        persist(updated);
+        return updated;
+      });
+    },
+    [persist]
+  );
+
   const removePurchase = useCallback(
     async (id: string) => {
       setPurchases((prev) => {
@@ -115,6 +136,7 @@ export function PortfolioProvider({
         purchases,
         isLoading,
         addPurchase,
+        updatePurchase,
         removePurchase,
         totalWeightGrams,
         totalInvested,

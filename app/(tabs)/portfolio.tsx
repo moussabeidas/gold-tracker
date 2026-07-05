@@ -30,6 +30,8 @@ import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { CountUp } from "@/components/CountUp";
 import { FocusReveal } from "@/components/FocusReveal";
 import { SpinningCoin } from "@/components/SpinningCoin";
+import { formatYmd } from "@/lib/dates";
+import { resolveImageUri } from "@/lib/images";
 
 function formatCurrency(n: number) {
   return n.toLocaleString("en-US", {
@@ -67,11 +69,14 @@ function PurchaseCard({
     );
   };
 
-  const formattedDate = new Date(item.purchaseDate).toLocaleDateString(
-    "en-US",
-    { month: "short", day: "numeric", year: "numeric" }
-  );
+  const formattedDate = formatYmd(item.purchaseDate);
   const weightOz = (item.weightGrams / TROY_OUNCE_GRAMS).toFixed(4);
+  const displayImage = resolveImageUri(item.imageUri);
+
+  const handleEdit = () => {
+    Haptics.selectionAsync();
+    router.push({ pathname: "/add-purchase", params: { id: item.id } });
+  };
 
   return (
     <Animated.View
@@ -79,10 +84,10 @@ function PurchaseCard({
       exiting={FadeOutUp.duration(260)}
       layout={LinearTransition.springify().damping(18)}
     >
-      <View style={styles.card}>
+      <Pressable onPress={handleEdit} style={styles.card}>
         <View style={styles.cardTop}>
-          {item.imageUri ? (
-            <Image source={{ uri: item.imageUri }} style={styles.cardImage} />
+          {displayImage ? (
+            <Image source={{ uri: displayImage }} style={styles.cardImage} />
           ) : (
             <View style={styles.cardImagePlaceholder}>
               {isIOS ? (
@@ -131,7 +136,7 @@ function PurchaseCard({
             </Text>
           </View>
         </View>
-      </View>
+      </Pressable>
     </Animated.View>
   );
 }
