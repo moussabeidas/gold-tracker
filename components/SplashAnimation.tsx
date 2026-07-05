@@ -1,11 +1,10 @@
 import React, { useEffect } from "react";
-import { StyleSheet, View, Text, Image } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useDerivedValue,
   withTiming,
   withDelay,
   Easing,
@@ -13,9 +12,9 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import Colors from "@/constants/colors";
+import { Coin3D } from "@/components/Coin3D";
 
 const COIN = 224;
-const COIN_SOURCE = require("@/assets/images/splash-icon.png");
 
 interface Props {
   onFinish: () => void;
@@ -70,23 +69,9 @@ export function SplashAnimation({ onFinish }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The coin darkens as its edge faces the viewer — sells the 3D turn
-  const edgeShade = useDerivedValue(() => {
-    const rad = (rotY.value * Math.PI) / 180;
-    return 1 - Math.abs(Math.cos(rad));
-  });
-
   const coinStyle = useAnimatedStyle(() => ({
     opacity: coinOpacity.value,
-    transform: [
-      { perspective: 1100 },
-      { rotateY: `${rotY.value}deg` },
-      { scale: coinScale.value },
-    ],
-  }));
-
-  const shadeStyle = useAnimatedStyle(() => ({
-    opacity: edgeShade.value * 0.75,
+    transform: [{ scale: coinScale.value }],
   }));
 
   const shineStyle = useAnimatedStyle(() => ({
@@ -104,11 +89,9 @@ export function SplashAnimation({ onFinish }: Props) {
 
   return (
     <Animated.View style={[styles.container, exitStyle]}>
-      {/* The coin — perspective rotateY gives the 3D flip */}
+      {/* The coin — thickness + reeded rim, driven by the spin value */}
       <Animated.View style={[styles.coinWrap, coinStyle]}>
-        <Image source={COIN_SOURCE} style={styles.coin} resizeMode="contain" />
-        {/* Edge shading while the coin is side-on */}
-        <Animated.View style={[styles.coinShade, shadeStyle]} pointerEvents="none" />
+        <Coin3D size={COIN} rotation={rotY} />
         {/* Specular sweep, clipped to the coin circle */}
         <View style={styles.shineClip} pointerEvents="none">
           <Animated.View style={[styles.shineBar, shineStyle]}>
@@ -155,15 +138,6 @@ const styles = StyleSheet.create({
     height: COIN,
     alignItems: "center",
     justifyContent: "center",
-  },
-  coin: {
-    width: COIN,
-    height: COIN,
-  },
-  coinShade: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: COIN / 2,
-    backgroundColor: "#000",
   },
   shineClip: {
     ...StyleSheet.absoluteFillObject,
