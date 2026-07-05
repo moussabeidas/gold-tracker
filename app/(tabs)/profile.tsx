@@ -8,7 +8,9 @@ import {
   Image,
   Platform,
   Alert,
+  Linking,
 } from "react-native";
+import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -16,6 +18,7 @@ import { FocusReveal } from "@/components/FocusReveal";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/lib/auth";
 import { usePortfolio } from "@/context/PortfolioContext";
+import { useSubscription } from "@/context/SubscriptionContext";
 import { LoginScreen } from "@/components/LoginScreen";
 
 function MenuRow({
@@ -74,6 +77,44 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, isAuthenticated, logout } = useAuth();
   const { purchases, totalWeightGrams, totalInvested } = usePortfolio();
+  const { isPro, subscription, revertToFree } = useSubscription();
+
+  const planLabel =
+    subscription.planId === "lifetime"
+      ? "Pro · Lifetime"
+      : subscription.planId === "tracker_monthly"
+        ? "Pro · Monthly"
+        : "Standard";
+
+  const handleManagePro = () => {
+    Haptics.selectionAsync();
+    Alert.alert(
+      "Cancel Gold Pricer Pro?",
+      "Important: canceling does not guarantee a refund for amounts already " +
+        "paid.\n\n• Monthly subscriptions must also be canceled with Apple in " +
+        "Settings → Apple ID → Subscriptions, or billing continues.\n• For " +
+        "refund requests, use Apple's reportaproblem.apple.com.\n\nReverting " +
+        "here switches this device back to the Standard tier immediately.",
+      [
+        { text: "Keep Pro", style: "cancel" },
+        {
+          text: "Manage Apple Subscription",
+          onPress: () =>
+            Linking.openURL("https://apps.apple.com/account/subscriptions").catch(
+              () => {}
+            ),
+        },
+        {
+          text: "Revert to Standard",
+          style: "destructive",
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            revertToFree();
+          },
+        },
+      ]
+    );
+  };
 
   if (!isAuthenticated || !user) {
     return <LoginScreen />;
@@ -159,7 +200,53 @@ export default function ProfileScreen() {
         </View>
       </FocusReveal>
 
-      <FocusReveal delay={200} style={styles.menuSection}>
+      <FocusReveal delay={180} style={styles.menuSection}>
+        <Text style={styles.sectionHeader}>Membership</Text>
+        <View style={styles.menuCard}>
+          <View style={[styles.menuRow, styles.menuRowBordered]}>
+            <View
+              style={[
+                styles.menuIcon,
+                { backgroundColor: Colors.dark.goldFaint },
+              ]}
+            >
+              <Feather
+                name={isPro ? "award" : "user"}
+                size={16}
+                color={Colors.dark.gold}
+              />
+            </View>
+            <Text style={styles.menuLabel}>Plan</Text>
+            <View style={[styles.planBadge, !isPro && styles.planBadgeMuted]}>
+              <Text
+                style={[styles.planBadgeText, !isPro && styles.planBadgeTextMuted]}
+              >
+                {planLabel}
+              </Text>
+            </View>
+          </View>
+          {isPro ? (
+            <MenuRow
+              icon="slash"
+              label="Manage or Cancel Pro"
+              onPress={handleManagePro}
+              isLast
+            />
+          ) : (
+            <MenuRow
+              icon="arrow-up-circle"
+              label="Upgrade to Pro"
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push("/paywall");
+              }}
+              isLast
+            />
+          )}
+        </View>
+      </FocusReveal>
+
+      <FocusReveal delay={230} style={styles.menuSection}>
         <Text style={styles.sectionHeader}>Account</Text>
         <View style={styles.menuCard}>
           <MenuRow
@@ -338,6 +425,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Inter_500Medium",
     color: Colors.dark.text,
+  },
+  planBadge: {
+    backgroundColor: Colors.dark.gold,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  planBadgeMuted: {
+    backgroundColor: Colors.dark.surface,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  planBadgeText: {
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+    color: "#000",
+  },
+  planBadgeTextMuted: {
+    color: Colors.dark.textSecondary,
   },
   menuValue: {
     fontSize: 14,

@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -24,6 +24,8 @@ import { usePortfolio, GoldPurchase } from "@/context/PortfolioContext";
 import { TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
 import { fetchGoldPriceOnDate } from "@/lib/marketData";
 import { scanGoldImage } from "@/lib/goldVision";
+import { parseYmd, toYmd, formatYmd } from "@/lib/dates";
+import { persistImage, resolveImageUri } from "@/lib/images";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -68,17 +70,25 @@ function InputField({
 
 export default function AddPurchaseScreen() {
   const insets = useSafeAreaInsets();
-  const { addPurchase } = usePortfolio();
+  const { addPurchase, updatePurchase, purchases } = usePortfolio();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const editing = id ? purchases.find((p) => p.id === id) : undefined;
 
-  const [type, setType] = useState<GoldType>("bar");
-  const [name, setName] = useState("");
-  const [weightGrams, setWeightGrams] = useState("");
-  const [pricePaid, setPricePaid] = useState("");
-  const [purchaseDate, setPurchaseDate] = useState(
-    new Date().toISOString().split("T")[0]
+  const [type, setType] = useState<GoldType>(editing?.type ?? "bar");
+  const [name, setName] = useState(editing?.name ?? "");
+  const [weightGrams, setWeightGrams] = useState(
+    editing ? String(editing.weightGrams) : ""
   );
-  const [imageUri, setImageUri] = useState<string | undefined>();
-  const [notes, setNotes] = useState("");
+  const [pricePaid, setPricePaid] = useState(
+    editing ? editing.pricePaid.toFixed(2) : ""
+  );
+  const [purchaseDate, setPurchaseDate] = useState(
+    editing?.purchaseDate ?? toYmd(new Date())
+  );
+  const [imageUri, setImageUri] = useState<string | undefined>(
+    editing?.imageUri
+  );
+  const [notes, setNotes] = useState(editing?.notes ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [estimate, setEstimate] = useState<{
@@ -92,9 +102,9 @@ export default function AddPurchaseScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerDate, setPickerDate] = useState<Date>(new Date());
   // Once the user types a price or picks a date by hand, stop auto-filling it
-  const priceEdited = useRef(false);
+  const priceEdited = useRef(!!editing);
   const priceAutoFilled = useRef(false);
-  const dateEdited = useRef(false);
+  const dateEdited = useRef(!!editing);
 
   const handlePriceChange = (v: string) => {
     priceEdited.current = true;
@@ -116,8 +126,8 @@ export default function AddPurchaseScreen() {
     const m = raw.match(/^(\d{4})[:-](\d{2})[:-](\d{2})/);
     if (!m) return;
     const iso = `${m[1]}-${m[2]}-${m[3]}`;
-    const ms = new Date(`${iso}T12:00:00Z`).getTime();
-    if (isNaN(ms) || ms > Date.now() + 86400_000) return;
+    const parsed = parseYmd(iso);
+    if (!parsed || parsed.getTime() > Date.now() + 86400_000) return;
     setPurchaseDate(iso);
   };
 
@@ -163,9 +173,10 @@ export default function AddPurchaseScreen() {
   useEffect(() => {
     setEstimate(null);
     const weight = parseFloat(weightGrams);
-    if (!DATE_RE.test(purchaseDate) || !weight || weight <= 0) return;
-    const dateMs = new Date(`${purchaseDate}T12:00:00Z`).getTime();
-    if (isNaN(dateMs) || dateMs > Date.now() + 86400_000) return;
+    const parsedDate = parseYmd(purchaseDate);
+    if (!parsedDate || !weight || weight <= 0) return;
+    const dateMs = parsedDate.getTime();
+    if (dateMs > Date.now() + 86400_000) return;
 
     let cancelled = false;
     setEstimating(true);
@@ -202,28 +213,22 @@ export default function AddPurchaseScreen() {
 
   const openDatePicker = () => {
     Haptics.selectionAsync();
-    const parsed = new Date(`${purchaseDate}T12:00:00`);
-    setPickerDate(isNaN(parsed.getTime()) ? new Date() : parsed);
+    setPickerDate(parseYmd(purchaseDate) ?? new Date());
     setShowDatePicker(true);
   };
 
   const confirmDate = () => {
     dateEdited.current = true;
-    const y = pickerDate.getFullYear();
-    const mo = String(pickerDate.getMonth() + 1).padStart(2, "0");
-    const da = String(pickerDate.getDate()).padStart(2, "0");
-    setPurchaseDate(`${y}-${mo}-${da}`);
+    setPurchaseDate(toYmd(pickerDate));
     setShowDatePicker(false);
   };
 
-  const formattedPurchaseDate = DATE_RE.test(purchaseDate)
-    ? new Date(`${purchaseDate}T12:00:00`).toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : purchaseDate;
+  const formattedPurchaseDate = formatYmd(purchaseDate, {
+    weekday: "short",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -312,15 +317,26 @@ export default function AddPurchaseScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsSaving(true);
 
-    await addPurchase({
+    // Move fresh picker photos out of the volatile cache before saving
+    let storedImage = imageUri;
+    if (imageUri && imageUri !== editing?.imageUri && imageUri.includes("://")) {
+      storedImage = await persistImage(imageUri);
+    }
+
+    const record = {
       type,
       name: name.trim(),
       weightGrams: weight,
       pricePaid: price,
       purchaseDate,
-      imageUri,
+      imageUri: storedImage,
       notes: notes.trim() || undefined,
-    });
+    };
+    if (editing) {
+      await updatePurchase(editing.id, record);
+    } else {
+      await addPurchase(record);
+    }
 
     setIsSaving(false);
     router.back();
@@ -342,7 +358,9 @@ export default function AddPurchaseScreen() {
         >
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
-        <Text style={styles.modalTitle}>Add Purchase</Text>
+        <Text style={styles.modalTitle}>
+          {editing ? "Edit Purchase" : "Add Purchase"}
+        </Text>
         <Pressable
           onPress={handleSave}
           style={({ pressed }) => [
@@ -386,7 +404,10 @@ export default function AddPurchaseScreen() {
               <ActivityIndicator color={Colors.dark.gold} />
             ) : imageUri ? (
               <>
-                <Image source={{ uri: imageUri }} style={styles.photoPreview} />
+                <Image
+                  source={{ uri: resolveImageUri(imageUri) }}
+                  style={styles.photoPreview}
+                />
                 <View style={styles.photoEditBadge}>
                   <Feather name="camera" size={12} color={Colors.dark.background} />
                 </View>
