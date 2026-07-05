@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Gold – XAU/USD Tracker",
+    "name": "Gold Pricer",
     "slug": "gold-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,7 +17,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.mbeidas.goldtracker",
-      "buildNumber": "17",
+      "buildNumber": "18",
       "supportsTablet": false,
       "requireFullScreen": true,
       "infoPlist": {
@@ -72,4 +72,4 @@
     },
     "owner": "mbeidas"
   }
-}
+}\n
