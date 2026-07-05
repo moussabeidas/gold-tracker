@@ -131,6 +131,13 @@ export function SplashAnimation({ onFinish }: Props) {
         <Text style={styles.appName}>Gold Pricer</Text>
         <Text style={styles.appSubtitle}>XAU / USD</Text>
       </Animated.View>
+
+      {/* Signature line */}
+      <Animated.View style={[styles.footer, textStyle]}>
+        <Text style={styles.footerText}>
+          From the City of Gold to the world 🇦🇪
+        </Text>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -174,6 +181,19 @@ const styles = StyleSheet.create({
     marginTop: 34,
     alignItems: "center",
     gap: 6,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 56,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  footerText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.40)",
+    letterSpacing: 0.3,
   },
   // System font = San Francisco on iOS
   appName: {
