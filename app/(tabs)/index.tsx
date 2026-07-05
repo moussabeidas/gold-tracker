@@ -21,6 +21,7 @@ import { TimeRangeSelector } from "@/components/TimeRangeSelector";
 import { StatCard } from "@/components/StatCard";
 import { NewsItem } from "@/components/NewsItem";
 import { useGoldNews } from "@/hooks/useGoldNews";
+import { ShareGoldButton } from "@/components/ShareGoldButton";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -161,15 +162,20 @@ export default function GoldScreen() {
       }
     >
       <FocusReveal offset={12}>
-      <Text style={styles.dateLabel}>
-        {new Date()
-          .toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })
-          .toUpperCase()}
-      </Text>
+      <View style={styles.topRow}>
+        <Text style={styles.dateLabel}>
+          {new Date()
+            .toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })
+            .toUpperCase()}
+        </Text>
+        <ShareGoldButton
+          data={{ price: currentPrice, change, changePct, isPositive }}
+        />
+      </View>
       {scrubTime && (
         <View style={styles.scrubTimeContainer}>
           <Text style={styles.scrubTime}>{scrubTime}</Text>
@@ -240,13 +246,19 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
   },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 6,
+  },
   dateLabel: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
     color: Colors.dark.textTertiary,
     letterSpacing: 1.2,
-    paddingHorizontal: 20,
-    paddingBottom: 6,
+    flex: 1,
   },
   scrubTimeContainer: {
     alignItems: "center",
