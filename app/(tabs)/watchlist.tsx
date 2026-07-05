@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import Colors from "@/constants/colors";
-import { useGoldPrice, useSpotPrice } from "@/context/GoldPriceContext";
+import { useGoldPrice, useSpotPrice, TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
 import * as Haptics from "expo-haptics";
 import { FocusReveal } from "@/components/FocusReveal";
 import Animated, {
@@ -147,16 +147,18 @@ function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
 }
 
 // Isolated so the 3s spot tick re-renders these rows only, not the screen.
+// Prices are per GRAM of gold content: (spot / 31.1035) × (karat / 24).
 // Every purity is a fraction of the live spot, so they share gold's day %.
 function PurityRows({ dayOpen }: { dayOpen: number }) {
   const spotPrice = useSpotPrice();
+  const pricePerGram = spotPrice / TROY_OUNCE_GRAMS;
   const goldPct = dayOpen ? ((spotPrice - dayOpen) / dayOpen) * 100 : 0;
   const pctText = `${goldPct >= 0 ? "+" : ""}${goldPct.toFixed(2)}%`;
 
   return (
     <>
       {PURITIES.map((p, i) => {
-        const price = spotPrice * p.fraction;
+        const price = pricePerGram * p.fraction;
         return (
           <MetalRow
             key={p.karat}
@@ -166,7 +168,7 @@ function PurityRows({ dayOpen }: { dayOpen: number }) {
               iconLabel: p.karat,
               symbol: `${p.karat} Gold`,
               name: p.name,
-              price: formatUsd(price),
+              price: `${formatUsd(price)}/g`,
               change: "",
               changePct: pctText,
               isPositive: goldPct >= 0,
@@ -205,12 +207,18 @@ export default function WatchlistScreen() {
 
       <FocusReveal delay={40} style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Gold by Purity</Text>
-        <Text style={styles.sectionSub}>
-          Value of gold content per troy ounce
+      </FocusReveal>
+
+      <FocusReveal delay={55} style={styles.unitBanner}>
+        <Feather name="info" size={14} color={Colors.dark.gold} />
+        <Text style={styles.unitBannerText}>
+          All prices shown are for{" "}
+          <Text style={styles.unitBannerStrong}>1 gram</Text> of gold at each
+          purity, based on the live spot price.
         </Text>
       </FocusReveal>
 
-      <FocusReveal delay={60} style={styles.card}>
+      <FocusReveal delay={70} style={styles.card}>
         <PurityRows dayOpen={dayOpen} />
       </FocusReveal>
 
@@ -368,6 +376,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     color: Colors.dark.textSecondary,
+  },
+  unitBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    backgroundColor: Colors.dark.goldFaint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,215,0,0.3)",
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+  },
+  unitBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: Colors.dark.textSecondary,
+    lineHeight: 18,
+  },
+  unitBannerStrong: {
+    fontFamily: "Inter_700Bold",
+    color: Colors.dark.text,
   },
   overviewGrid: {
     flexDirection: "row",
