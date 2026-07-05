@@ -106,7 +106,7 @@ export function LoginScreen() {
           </View>
         </View>
 
-        <Text style={styles.appName}>Gold</Text>
+        <Text style={styles.appName}>Gold Pricer</Text>
         <Text style={styles.tagline}>Your personal gold portfolio tracker</Text>
       </Animated.View>
 
