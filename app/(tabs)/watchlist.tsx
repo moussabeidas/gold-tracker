@@ -32,21 +32,21 @@ interface MetalItem {
   change: string;
   changePct: string;
   isPositive: boolean;
+  /** Karat text rendered inside the icon circle (e.g. "24K") */
+  iconLabel?: string;
   sfIcon?: SFSymbol;
   featherIcon: string;
 }
 
-// Static fallbacks shown until live quotes arrive
-const METAL_META: {
-  symbol: "XAG" | "XPT" | "XPD";
-  name: string;
-  fallbackPrice: number;
-  sfIcon: SFSymbol;
-  featherIcon: string;
-}[] = [
-  { symbol: "XAG", name: "Silver", fallbackPrice: 34.18, sfIcon: "circle.fill", featherIcon: "circle" },
-  { symbol: "XPT", name: "Platinum", fallbackPrice: 1012.55, sfIcon: "diamond.fill", featherIcon: "hexagon" },
-  { symbol: "XPD", name: "Palladium", fallbackPrice: 987.3, sfIcon: "hexagon.fill", featherIcon: "hexagon" },
+// Popular gold purities. Price = spot × (karat / 24) — the value of the
+// gold content per troy ounce at each fineness.
+const PURITIES: { karat: string; fraction: number; name: string }[] = [
+  { karat: "24K", fraction: 24 / 24, name: "Pure gold · 999.9 fine" },
+  { karat: "22K", fraction: 22 / 24, name: "91.7% fine · 916" },
+  { karat: "21K", fraction: 21 / 24, name: "87.5% fine · 875" },
+  { karat: "18K", fraction: 18 / 24, name: "75.0% fine · 750" },
+  { karat: "14K", fraction: 14 / 24, name: "58.3% fine · 585" },
+  { karat: "10K", fraction: 10 / 24, name: "41.7% fine · 417" },
 ];
 
 function formatUsd(n: number) {
@@ -115,7 +115,9 @@ function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
       ]}
     >
       <View style={[styles.iconContainer, { backgroundColor: Colors.dark.goldFaint }]}>
-        {isIOS ? (
+        {item.iconLabel ? (
+          <Text style={styles.iconLabel}>{item.iconLabel}</Text>
+        ) : isIOS ? (
           <SymbolView
             name={item.sfIcon ?? "circle.fill"}
             tintColor={Colors.dark.gold}
@@ -144,47 +146,43 @@ function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
   );
 }
 
-// Isolated so the 3s price tick re-renders this row only, not the screen
-function LiveGoldRow({ dayOpen }: { dayOpen: number }) {
+// Isolated so the 3s spot tick re-renders these rows only, not the screen.
+// Every purity is a fraction of the live spot, so they share gold's day %.
+function PurityRows({ dayOpen }: { dayOpen: number }) {
   const spotPrice = useSpotPrice();
-  const goldChange = spotPrice - dayOpen;
-  const goldPct = dayOpen ? (goldChange / dayOpen) * 100 : 0;
-  const goldItem: MetalItem = {
-    liveValue: spotPrice,
-    symbol: "XAU",
-    name: "Gold",
-    price: formatUsd(spotPrice),
-    change: `${goldChange >= 0 ? "+" : "-"}$${Math.abs(goldChange).toFixed(2)}`,
-    changePct: `${goldChange >= 0 ? "+" : ""}${goldPct.toFixed(2)}%`,
-    isPositive: goldChange >= 0,
-    sfIcon: "seal.fill",
-    featherIcon: "circle",
-  };
-  return <MetalRow item={goldItem} />;
+  const goldPct = dayOpen ? ((spotPrice - dayOpen) / dayOpen) * 100 : 0;
+  const pctText = `${goldPct >= 0 ? "+" : ""}${goldPct.toFixed(2)}%`;
+
+  return (
+    <>
+      {PURITIES.map((p, i) => {
+        const price = spotPrice * p.fraction;
+        return (
+          <MetalRow
+            key={p.karat}
+            isLast={i === PURITIES.length - 1}
+            item={{
+              liveValue: price,
+              iconLabel: p.karat,
+              symbol: `${p.karat} Gold`,
+              name: p.name,
+              price: formatUsd(price),
+              change: "",
+              changePct: pctText,
+              isPositive: goldPct >= 0,
+              featherIcon: "circle",
+            }}
+          />
+        );
+      })}
+    </>
+  );
 }
 
 export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
-  const { dayOpen, metals } = useGoldPrice();
+  const { dayOpen } = useGoldPrice();
   const topPad = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
-
-  const metalItems: MetalItem[] = METAL_META.map((m) => {
-    const quote = metals[m.symbol];
-    const price = quote?.price ?? m.fallbackPrice;
-    const pct = quote?.changePct ?? 0;
-    const changeAbs = quote ? Math.abs(price - quote.prevClose) : 0;
-    return {
-      symbol: m.symbol,
-      name: m.name,
-      price: formatUsd(price),
-      change: `${pct >= 0 ? "+" : "-"}$${changeAbs.toFixed(2)}`,
-      changePct: `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`,
-      isPositive: pct >= 0,
-      sfIcon: m.sfIcon,
-      featherIcon: m.featherIcon,
-    };
-  });
-
 
   return (
     <ScrollView
@@ -205,11 +203,15 @@ export default function WatchlistScreen() {
         <Text style={styles.pageTitle}>Watchlist</Text>
       </FocusReveal>
 
+      <FocusReveal delay={40} style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Gold by Purity</Text>
+        <Text style={styles.sectionSub}>
+          Value of gold content per troy ounce
+        </Text>
+      </FocusReveal>
+
       <FocusReveal delay={60} style={styles.card}>
-        <LiveGoldRow dayOpen={dayOpen} />
-        {metalItems.map((item, i) => (
-          <MetalRow key={item.symbol} item={item} isLast={i === metalItems.length - 1} />
-        ))}
+        <PurityRows dayOpen={dayOpen} />
       </FocusReveal>
 
       <FocusReveal delay={140} style={styles.sectionHeader}>
@@ -315,6 +317,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  iconLabel: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    color: Colors.dark.gold,
+    letterSpacing: -0.3,
+  },
   rowInfo: {
     flex: 1,
     gap: 2,
@@ -349,11 +357,17 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginTop: 4,
+    gap: 2,
   },
   sectionTitle: {
     fontSize: 20,
     fontFamily: "Inter_700Bold",
     color: Colors.dark.text,
+  },
+  sectionSub: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: Colors.dark.textSecondary,
   },
   overviewGrid: {
     flexDirection: "row",

@@ -102,12 +102,13 @@ export function PriceHeader({
   return (
     <View style={styles.container}>
       <View style={styles.symbolRow}>
-        <Text style={styles.symbol}>XAU/USD</Text>
+        <Text style={styles.symbol}>GOLD · XAU/USD</Text>
         {isLive && scrubPrice === null && <LiveIndicator />}
       </View>
       <Animated.Text style={[styles.price, scrubPrice === null && priceStyle]}>
         ${formatPrice(displayPrice)}
       </Animated.Text>
+      <Text style={styles.unit}>per troy ounce · 24K (999.9 fine)</Text>
       {scrubPrice === null && (
         <View style={[styles.badge, { backgroundColor: bgColor }]}>
           <Ionicons name={iconName} size={11} color={color} style={styles.caret} />
@@ -168,6 +169,13 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     lineHeight: 50,
     fontVariant: ["tabular-nums"],
+  },
+  unit: {
+    fontSize: 12.5,
+    fontFamily: "Inter_500Medium",
+    color: Colors.dark.textTertiary,
+    marginTop: 1,
+    marginBottom: 4,
   },
   badge: {
     flexDirection: "row",
