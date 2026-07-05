@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
+  Modal,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -87,6 +89,37 @@ export default function AddPurchaseScreen() {
   const [estimating, setEstimating] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanSummary, setScanSummary] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerDate, setPickerDate] = useState<Date>(new Date());
+  // Once the user types a price or picks a date by hand, stop auto-filling it
+  const priceEdited = useRef(false);
+  const priceAutoFilled = useRef(false);
+  const dateEdited = useRef(false);
+
+  const handlePriceChange = (v: string) => {
+    priceEdited.current = true;
+    priceAutoFilled.current = false;
+    setPricePaid(v);
+  };
+
+  // Photo metadata → purchase date (when the user hasn't chosen one)
+  const applyExifDate = (asset: ImagePicker.ImagePickerAsset) => {
+    if (dateEdited.current) return;
+    const exif: any = asset.exif ?? {};
+    const raw =
+      exif.DateTimeOriginal ??
+      exif["{Exif}"]?.DateTimeOriginal ??
+      exif.DateTimeDigitized ??
+      exif.DateTime ??
+      exif["{TIFF}"]?.DateTime;
+    if (typeof raw !== "string") return;
+    const m = raw.match(/^(\d{4})[:-](\d{2})[:-](\d{2})/);
+    if (!m) return;
+    const iso = `${m[1]}-${m[2]}-${m[3]}`;
+    const ms = new Date(`${iso}T12:00:00Z`).getTime();
+    if (isNaN(ms) || ms > Date.now() + 86400_000) return;
+    setPurchaseDate(iso);
+  };
 
   // Read the stamps on the photographed bar/coin (on-device OCR) and
   // prefill whatever the user hasn't typed yet — they review before saving.
@@ -140,10 +173,13 @@ export default function AddPurchaseScreen() {
       fetchGoldPriceOnDate("XAUUSD=X", dateMs)
         .then((pricePerOz) => {
           if (cancelled || !pricePerOz) return;
-          setEstimate({
-            cost: (weight / TROY_OUNCE_GRAMS) * pricePerOz,
-            pricePerOz,
-            date: purchaseDate,
+          const cost = (weight / TROY_OUNCE_GRAMS) * pricePerOz;
+          setEstimate({ cost, pricePerOz, date: purchaseDate });
+          // Auto-fill unless the user typed their own price
+          setPricePaid((prev) => {
+            if (priceEdited.current && prev.trim()) return prev;
+            priceAutoFilled.current = true;
+            return cost.toFixed(2);
           });
         })
         .finally(() => {
@@ -159,8 +195,35 @@ export default function AddPurchaseScreen() {
   const applyEstimate = () => {
     if (!estimate) return;
     Haptics.selectionAsync();
+    priceEdited.current = false;
+    priceAutoFilled.current = true;
     setPricePaid(estimate.cost.toFixed(2));
   };
+
+  const openDatePicker = () => {
+    Haptics.selectionAsync();
+    const parsed = new Date(`${purchaseDate}T12:00:00`);
+    setPickerDate(isNaN(parsed.getTime()) ? new Date() : parsed);
+    setShowDatePicker(true);
+  };
+
+  const confirmDate = () => {
+    dateEdited.current = true;
+    const y = pickerDate.getFullYear();
+    const mo = String(pickerDate.getMonth() + 1).padStart(2, "0");
+    const da = String(pickerDate.getDate()).padStart(2, "0");
+    setPurchaseDate(`${y}-${mo}-${da}`);
+    setShowDatePicker(false);
+  };
+
+  const formattedPurchaseDate = DATE_RE.test(purchaseDate)
+    ? new Date(`${purchaseDate}T12:00:00`).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : purchaseDate;
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -180,9 +243,11 @@ export default function AddPurchaseScreen() {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        exif: true,
       });
       if (!galleryResult.canceled) {
         setImageUri(galleryResult.assets[0].uri);
+        applyExifDate(galleryResult.assets[0]);
         scanImage(galleryResult.assets[0].uri);
       }
       return;
@@ -197,10 +262,12 @@ export default function AddPurchaseScreen() {
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
+            exif: true,
           });
           setImageLoading(false);
           if (!result.canceled) {
             setImageUri(result.assets[0].uri);
+            applyExifDate(result.assets[0]);
             scanImage(result.assets[0].uri);
           }
         },
@@ -213,9 +280,11 @@ export default function AddPurchaseScreen() {
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
+            exif: true,
           });
           if (!result.canceled) {
             setImageUri(result.assets[0].uri);
+            applyExifDate(result.assets[0]);
             scanImage(result.assets[0].uri);
           }
         },
@@ -265,12 +334,38 @@ export default function AddPurchaseScreen() {
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      {/* Fixed header — Save stays visible no matter how far you scroll */}
+      <View style={[styles.topBar, { paddingTop: topPad }]}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.cancelBtn}
+        >
+          <Text style={styles.cancelText}>Cancel</Text>
+        </Pressable>
+        <Text style={styles.modalTitle}>Add Purchase</Text>
+        <Pressable
+          onPress={handleSave}
+          style={({ pressed }) => [
+            styles.saveBtn,
+            pressed && styles.saveBtnPressed,
+            isSaving && styles.saveBtnDisabled,
+          ]}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator color={Colors.dark.background} size="small" />
+          ) : (
+            <Text style={styles.saveText}>Save</Text>
+          )}
+        </Pressable>
+      </View>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: topPad,
+            paddingTop: 8,
             paddingBottom: Platform.OS === "web"
               ? insets.bottom + 34
               : insets.bottom + 40,
@@ -279,31 +374,6 @@ export default function AddPurchaseScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topBar}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.cancelBtn}
-          >
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
-          <Text style={styles.modalTitle}>Add Purchase</Text>
-          <Pressable
-            onPress={handleSave}
-            style={({ pressed }) => [
-              styles.saveBtn,
-              pressed && styles.saveBtnPressed,
-              isSaving && styles.saveBtnDisabled,
-            ]}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <ActivityIndicator color={Colors.dark.background} size="small" />
-            ) : (
-              <Text style={styles.saveText}>Save</Text>
-            )}
-          </Pressable>
-        </View>
-
         <View style={styles.photoSection}>
           <Pressable
             style={({ pressed }) => [
@@ -401,7 +471,7 @@ export default function AddPurchaseScreen() {
           <InputField
             label="Price Paid"
             value={pricePaid}
-            onChangeText={setPricePaid}
+            onChangeText={handlePriceChange}
             placeholder="3,150.00"
             keyboardType="decimal-pad"
             prefix="$"
@@ -430,15 +500,24 @@ export default function AddPurchaseScreen() {
                 })}{" "}
                 (${estimate.pricePerOz.toLocaleString("en-US")}/oz)
               </Text>
-              <Text style={styles.estimateUse}>Use</Text>
+              <Text style={styles.estimateUse}>
+                {priceAutoFilled.current ? "Applied" : "Use"}
+              </Text>
             </Pressable>
           ) : null}
-          <InputField
-            label="Purchase Date"
-            value={purchaseDate}
-            onChangeText={setPurchaseDate}
-            placeholder="YYYY-MM-DD"
-          />
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Purchase Date</Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.inputRow,
+                pressed && { opacity: 0.75 },
+              ]}
+              onPress={openDatePicker}
+            >
+              <Text style={styles.dateValue}>{formattedPurchaseDate}</Text>
+              <Feather name="calendar" size={16} color={Colors.dark.gold} />
+            </Pressable>
+          </View>
           <InputField
             label="Notes (optional)"
             value={notes}
@@ -447,6 +526,50 @@ export default function AddPurchaseScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* System date picker */}
+      <Modal
+        visible={showDatePicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <Pressable
+          style={styles.pickerBackdrop}
+          onPress={() => setShowDatePicker(false)}
+        />
+        <View style={[styles.pickerSheet, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.pickerHeader}>
+            <Pressable onPress={() => setShowDatePicker(false)} hitSlop={10}>
+              <Text style={styles.pickerCancel}>Cancel</Text>
+            </Pressable>
+            <Text style={styles.pickerTitle}>Purchase Date</Text>
+            <Pressable onPress={confirmDate} hitSlop={10}>
+              <Text style={styles.pickerDone}>Done</Text>
+            </Pressable>
+          </View>
+          <DateTimePicker
+            value={pickerDate}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            themeVariant="dark"
+            maximumDate={new Date()}
+            onChange={(_e, d) => {
+              if (d) setPickerDate(d);
+              if (Platform.OS !== "ios") {
+                setShowDatePicker(false);
+                if (d) {
+                  dateEdited.current = true;
+                  const y = d.getFullYear();
+                  const mo = String(d.getMonth() + 1).padStart(2, "0");
+                  const da = String(d.getDate()).padStart(2, "0");
+                  setPurchaseDate(`${y}-${mo}-${da}`);
+                }
+              }
+            }}
+          />
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -468,6 +591,51 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    backgroundColor: Colors.dark.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.dark.border,
+  },
+  dateValue: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: "Inter_400Regular",
+    color: Colors.dark.text,
+  },
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  pickerSheet: {
+    backgroundColor: Colors.dark.surfaceElevated,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 6,
+  },
+  pickerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.dark.border,
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.dark.text,
+  },
+  pickerCancel: {
+    fontSize: 16,
+    fontFamily: "Inter_400Regular",
+    color: Colors.dark.textSecondary,
+  },
+  pickerDone: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: Colors.dark.gold,
   },
   cancelBtn: {
     paddingVertical: 6,
