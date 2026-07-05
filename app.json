@@ -17,7 +17,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.mbeidas.goldtracker",
-      "buildNumber": "21",
+      "buildNumber": "22",
       "supportsTablet": false,
       "requireFullScreen": true,
       "infoPlist": {
@@ -59,7 +59,8 @@
           "photosPermission": "Gold Tracker accesses your photos to add images of your gold holdings.",
           "cameraPermission": "Gold Tracker uses your camera to photograph your gold bars and coins."
         }
-      ]
+      ],
+      "expo-iap"
     ],
     "experiments": {
       "typedRoutes": true,

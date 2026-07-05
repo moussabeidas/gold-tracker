@@ -12,18 +12,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   initConnection,
   endConnection,
-  getProducts,
-  getSubscriptions,
+  fetchProducts,
   requestPurchase,
-  requestSubscription,
   finishTransaction,
   getAvailablePurchases,
   purchaseUpdatedListener,
   purchaseErrorListener,
   type Product,
-  type Subscription as IapSubscription,
   type Purchase,
-} from "react-native-iap";
+} from "expo-iap";
 
 export type PlanId = "free" | "tracker_monthly" | "lifetime";
 
@@ -131,8 +128,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           await applyPlan(plan);
         });
         errorSub = purchaseErrorListener((err) => {
-          // E_USER_CANCELLED is a normal sheet dismissal, not an error
-          if (err?.code !== "E_USER_CANCELLED") {
+          // A dismissed payment sheet is not an error
+          if (err?.code !== "user-cancelled") {
             Alert.alert(
               "Purchase failed",
               err?.message ?? "The App Store could not complete the purchase."
@@ -141,17 +138,19 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         });
 
         const [products, subs] = await Promise.all([
-          getProducts({ skus: [SKU_LIFETIME] }).catch(() => [] as Product[]),
-          getSubscriptions({ skus: [SKU_MONTHLY] }).catch(
-            () => [] as IapSubscription[]
+          fetchProducts({ skus: [SKU_LIFETIME], type: "in-app" }).catch(
+            () => [] as Product[]
+          ),
+          fetchProducts({ skus: [SKU_MONTHLY], type: "subs" }).catch(
+            () => [] as Product[]
           ),
         ]);
-        const lifetime = products.find((p) => p.productId === SKU_LIFETIME);
-        const monthly = subs.find((s) => s.productId === SKU_MONTHLY) as any;
+        const lifetime = (products ?? []).find((p) => p.id === SKU_LIFETIME);
+        const monthly = (subs ?? []).find((p) => p.id === SKU_MONTHLY);
         if (lifetime || monthly) {
           setPricing({
-            lifetime: lifetime?.localizedPrice ?? FALLBACK_PRICING.lifetime,
-            monthly: monthly?.localizedPrice ?? FALLBACK_PRICING.monthly,
+            lifetime: lifetime?.displayPrice ?? FALLBACK_PRICING.lifetime,
+            monthly: monthly?.displayPrice ?? FALLBACK_PRICING.monthly,
           });
           setStoreReady(true);
         }
@@ -182,13 +181,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
       if (planId === "lifetime") {
         await requestPurchase({
-          sku: SKU_LIFETIME,
-          andDangerouslyFinishTransactionAutomaticallyIOS: false,
+          request: { apple: { sku: SKU_LIFETIME } },
+          type: "in-app",
         });
       } else {
-        await requestSubscription({
-          sku: SKU_MONTHLY,
-          andDangerouslyFinishTransactionAutomaticallyIOS: false,
+        await requestPurchase({
+          request: { apple: { sku: SKU_MONTHLY } },
+          type: "subs",
         });
       }
     },
