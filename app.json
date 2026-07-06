@@ -17,7 +17,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.mbeidas.goldtracker",
-      "buildNumber": "27",
+      "buildNumber": "28",
       "supportsTablet": false,
       "requireFullScreen": true,
       "infoPlist": {
@@ -28,6 +28,11 @@
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.mbeidas.goldtracker"
+        ]
       }
     },
     "android": {
@@ -60,7 +65,13 @@
           "cameraPermission": "Gold Tracker uses your camera to photograph your gold bars and coins."
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      [
+        "@bacons/apple-targets",
+        {
+          "appleTeamId": "P2TSL4VJ5H"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
