@@ -18,8 +18,10 @@ import { FocusReveal } from "@/components/FocusReveal";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/lib/auth";
 import { usePortfolio } from "@/context/PortfolioContext";
+import { useReferral } from "@/context/ReferralContext";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { LoginScreen } from "@/components/LoginScreen";
+import { REFERRAL_TARGET } from "@/lib/referral";
 
 function MenuRow({
   icon,
@@ -78,13 +80,17 @@ export default function ProfileScreen() {
   const { user, isAuthenticated, logout } = useAuth();
   const { purchases, totalWeightGrams, totalInvested } = usePortfolio();
   const { isPro, subscription, revertToFree } = useSubscription();
+  const { referredCount, hasReferralPro } = useReferral();
 
-  const planLabel =
-    subscription.planId === "lifetime"
+  const planLabel = hasReferralPro
+    ? "Pro · Referral"
+    : subscription.planId === "lifetime"
       ? "Pro · Lifetime"
       : subscription.planId === "tracker_monthly"
         ? "Pro · Monthly"
-        : "Standard";
+        : subscription.planId === "tracker_annual"
+          ? "Pro · Annual"
+          : "Standard";
 
   const handleManagePro = () => {
     Haptics.selectionAsync();
@@ -243,6 +249,50 @@ export default function ProfileScreen() {
               isLast
             />
           )}
+        </View>
+      </FocusReveal>
+
+      <FocusReveal delay={205} style={styles.menuSection}>
+        <Text style={styles.sectionHeader}>Invite & Earn</Text>
+        <View style={styles.menuCard}>
+          <MenuRow
+            icon="gift"
+            label="Invite friends, earn Pro"
+            value={
+              referredCount > 0
+                ? `${referredCount}/${REFERRAL_TARGET}`
+                : "+1 slot each"
+            }
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/referrals");
+            }}
+            isLast
+          />
+        </View>
+      </FocusReveal>
+
+      <FocusReveal delay={220} style={styles.menuSection}>
+        <Text style={styles.sectionHeader}>Widgets & Alerts</Text>
+        <View style={styles.menuCard}>
+          <MenuRow
+            icon="grid"
+            label="Widgets"
+            value="Home & Lock Screen"
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/widgets-settings");
+            }}
+          />
+          <MenuRow
+            icon="bell"
+            label="Price Alerts"
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/alerts-settings");
+            }}
+            isLast
+          />
         </View>
       </FocusReveal>
 

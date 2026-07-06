@@ -22,6 +22,7 @@ import Colors from "@/constants/colors";
 import { AuthProvider } from "@/lib/auth";
 import { GoldPriceProvider } from "@/context/GoldPriceContext";
 import { PortfolioProvider } from "@/context/PortfolioContext";
+import { ReferralProvider } from "@/context/ReferralContext";
 import { SubscriptionProvider } from "@/context/SubscriptionContext";
 import { useAuth } from "@/lib/auth";
 
@@ -64,6 +65,33 @@ function RootLayoutNav() {
           contentStyle: { backgroundColor: Colors.dark.background },
         }}
       />
+      <Stack.Screen
+        name="referrals"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          contentStyle: { backgroundColor: Colors.dark.background },
+        }}
+      />
+      <Stack.Screen
+        name="widgets-settings"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          contentStyle: { backgroundColor: Colors.dark.background },
+        }}
+      />
+      <Stack.Screen
+        name="alerts-settings"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          contentStyle: { backgroundColor: Colors.dark.background },
+        }}
+      />
     </Stack>
   );
 }
@@ -96,6 +124,7 @@ export default function RootLayout() {
             <KeyboardProvider>
               <AuthProvider>
                 <GoldPriceProvider>
+                  <ReferralProvider>
                   <SubscriptionProvider>
                     <PortfolioWrapper>
                       <StatusBar style="light" />
@@ -107,6 +136,7 @@ export default function RootLayout() {
                       )}
                     </PortfolioWrapper>
                   </SubscriptionProvider>
+                  </ReferralProvider>
                 </GoldPriceProvider>
               </AuthProvider>
             </KeyboardProvider>
