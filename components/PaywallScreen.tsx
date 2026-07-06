@@ -24,6 +24,7 @@ import Animated, {
 
 import Colors from "@/constants/colors";
 import { useSubscription, type PlanId } from "@/context/SubscriptionContext";
+import { track } from "@/lib/analytics";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { SpinningCoin } from "@/components/SpinningCoin";
 
@@ -41,6 +42,10 @@ export function PaywallScreen() {
   const { subscribe, restore, pricing, storeReady, isPro } = useSubscription();
   const [selected, setSelected] = useState<PaidPlan>("tracker_annual");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    track("paywall_view");
+  }, []);
 
   // The preferred plan breathes: a gold glow cycles on its border
   const glow = useSharedValue(0);

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gold Pricer — Admin</title>
+<style>
+  :root {
+    --bg: #0b0b0f; --card: #17171c; --border: #26262e;
+    --text: #f2f2f5; --muted: #8e8e99; --gold: #f2c14e;
+    --up: #2ecc71; --down: #ff5a5a;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 24px; max-width: 1100px; margin: 0 auto;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  h1 span { color: var(--gold); }
+  .sub { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); margin-bottom: 22px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .kpi .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .kpi .value { font-size: 30px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi .hint { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .wide { grid-column: 1 / -1; }
+  .card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 12px; }
+  .bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; }
+  .bars .bar { flex: 1; background: var(--gold); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .9; }
+  .bars .bar:hover { opacity: 1; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .funnel .stage { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .funnel .name { width: 130px; color: var(--muted); font-size: 12px; }
+  .funnel .track { flex: 1; background: #101014; border-radius: 6px; height: 22px; overflow: hidden; }
+  .funnel .fill { height: 100%; background: linear-gradient(90deg, var(--gold), #c89b2c); border-radius: 6px; }
+  .funnel .n { width: 70px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  #login { max-width: 380px; margin: 15vh auto; text-align: center; }
+  #login input {
+    width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-size: 15px; margin: 14px 0;
+  }
+  #login button {
+    width: 100%; padding: 12px; border: 0; border-radius: 10px; background: var(--gold);
+    font-weight: 700; font-size: 15px; cursor: pointer;
+  }
+  .err { color: var(--down); font-size: 13px; min-height: 18px; }
+  .row2 { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 720px) { .row2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="login">
+  <h1>Gold <span>Pricer</span> Admin</h1>
+  <p class="sub">Enter the admin token to view app stats.</p>
+  <input id="token" type="password" placeholder="Admin token" autocomplete="current-password" />
+  <div class="err" id="loginErr"></div>
+  <button onclick="login()">Open dashboard</button>
+</div>
+
+<div id="dash" style="display:none">
+  <h1>Gold <span>Pricer</span> — App Stats</h1>
+  <p class="sub" id="generated"></p>
+
+  <div class="grid" id="kpis"></div>
+
+  <div class="card wide">
+    <h3>New users — last 30 days</h3>
+    <div class="bars" id="signups"></div>
+  </div>
+
+  <div class="row2" style="margin-top:14px">
+    <div class="card funnel">
+      <h3>Activation funnel — 30 days (unique users)</h3>
+      <div id="funnel"></div>
+    </div>
+    <div class="card">
+      <h3>Top events — 7 days</h3>
+      <table id="events"><thead><tr><th>Event</th><th style="text-align:right">Count</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <div class="row2" style="margin-top:14px">
+    <div class="card">
+      <h3>Referral leaderboard</h3>
+      <table id="referrers"><thead><tr><th>User</th><th>Code</th><th style="text-align:right">Referrals</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h3>App Store subscription events — 30 days</h3>
+      <table id="subs"><thead><tr><th>Type</th><th style="text-align:right">Count</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <div class="card wide" style="margin-top:14px">
+    <h3>Users <input id="q" placeholder="search email / name / code" style="margin-left:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:#101014;color:var(--text)" onkeydown="if(event.key==='Enter')loadUsers()"/></h3>
+    <table id="users"><thead><tr><th>Name</th><th>Email</th><th>Code</th><th>Plan</th><th>Joined</th><th>Last seen</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<script>
+let TOKEN = sessionStorage.getItem("adminToken") || "";
+
+async function api(path) {
+  const res = await fetch(path, { headers: { Authorization: "Bearer " + TOKEN } });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+function kpi(label, value, hint) {
+  return `<div class="card kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="hint">${hint || ""}</div></div>`;
+}
+
+async function login() {
+  TOKEN = document.getElementById("token").value.trim();
+  try {
+    await api("/v1/admin/stats");
+    sessionStorage.setItem("adminToken", TOKEN);
+    document.getElementById("login").style.display = "none";
+    document.getElementById("dash").style.display = "block";
+    render();
+  } catch {
+    document.getElementById("loginErr").textContent = "Invalid token.";
+  }
+}
+
+async function render() {
+  const s = await api("/v1/admin/stats");
+  document.getElementById("generated").textContent =
+    "Generated " + new Date(s.generatedAt).toLocaleString();
+
+  document.getElementById("kpis").innerHTML =
+    kpi("Total users", s.totals.users.toLocaleString()) +
+    kpi("DAU", s.active.dau.toLocaleString(), "active last 24h") +
+    kpi("WAU", s.active.wau.toLocaleString(), "active last 7d") +
+    kpi("MAU", s.active.mau.toLocaleString(), "active last 30d") +
+    kpi("Verified referrals", s.totals.referrals.toLocaleString(), "K-proxy " + s.kFactorProxy) +
+    kpi("Events stored", s.totals.events.toLocaleString());
+
+  const days = s.signupsByDay;
+  const max = Math.max(1, ...days.map(d => d.n));
+  document.getElementById("signups").innerHTML = days.length
+    ? days.map(d => `<div class="bar" style="height:${(d.n / max) * 100}%" title="${d.day}: ${d.n}"></div>`).join("")
+    : '<span style="color:var(--muted)">No signups yet.</span>';
+
+  const f = s.funnel;
+  const fmax = Math.max(1, f.appOpen);
+  document.getElementById("funnel").innerHTML = [
+    ["Opened app", f.appOpen], ["Added gold", f.goldAdded],
+    ["Viewed paywall", f.paywallView], ["Subscribed", f.subscribed],
+  ].map(([name, n]) =>
+    `<div class="stage"><div class="name">${name}</div><div class="track"><div class="fill" style="width:${(n / fmax) * 100}%"></div></div><div class="n">${n.toLocaleString()}</div></div>`
+  ).join("");
+
+  document.querySelector("#events tbody").innerHTML = s.topEvents
+    .map(e => `<tr><td>${e.name}</td><td class="num">${e.n.toLocaleString()}</td></tr>`).join("") ||
+    '<tr><td colspan="2" style="color:var(--muted)">No events yet.</td></tr>';
+
+  document.querySelector("#referrers tbody").innerHTML = s.topReferrers
+    .map(r => `<tr><td>${r.name}</td><td>${r.code}</td><td class="num">${r.n}</td></tr>`).join("") ||
+    '<tr><td colspan="3" style="color:var(--muted)">No referrals yet.</td></tr>';
+
+  document.querySelector("#subs tbody").innerHTML = s.subEvents
+    .map(e => `<tr><td>${e.notification_type || "unknown"}</td><td class="num">${e.n}</td></tr>`).join("") ||
+    '<tr><td colspan="2" style="color:var(--muted)">Connect App Store Server Notifications to see revenue events.</td></tr>';
+
+  loadUsers();
+}
+
+async function loadUsers() {
+  const q = encodeURIComponent(document.getElementById("q").value.trim());
+  const data = await api("/v1/admin/users?q=" + q);
+  const fmt = t => new Date(t).toLocaleDateString();
+  document.querySelector("#users tbody").innerHTML = data.users
+    .map(u => `<tr><td>${[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}</td><td>${u.email || "—"}</td><td>${u.invite_code}</td><td>${u.plan}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_seen_at)}</td></tr>`).join("") ||
+    '<tr><td colspan="6" style="color:var(--muted)">No users yet.</td></tr>';
+}
+
+if (TOKEN) login();
+</script>
+</body>
+</html>

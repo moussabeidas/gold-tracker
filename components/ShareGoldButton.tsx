@@ -7,12 +7,14 @@ import { Feather } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { ShareCard, type ShareCardData } from "@/components/ShareCard";
+import { track } from "@/lib/analytics";
 
 export function ShareGoldButton({ data }: { data: ShareCardData }) {
   const cardRef = useRef<View>(null);
   const [busy, setBusy] = useState(false);
 
   const handleShare = async () => {
+    track("share_price");
     if (busy) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setBusy(true);

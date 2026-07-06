@@ -23,6 +23,7 @@ import {
 } from "expo-iap";
 
 import { useReferral } from "@/context/ReferralContext";
+import { track, flush } from "@/lib/analytics";
 
 export type PlanId = "free" | "tracker_monthly" | "tracker_annual" | "lifetime";
 
@@ -135,6 +136,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             await finishTransaction({ purchase, isConsumable: false });
           } catch {}
           await applyPlan(plan);
+          track("subscribe_success", { plan });
+          flush().catch(() => {});
         });
         errorSub = purchaseErrorListener((err) => {
           // A dismissed payment sheet is not an error
