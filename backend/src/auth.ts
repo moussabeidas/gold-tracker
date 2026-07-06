@@ -59,12 +59,14 @@ export async function requireUser(c: Context, next: Next) {
 
 /** Hono middleware: admin endpoints, gated by a static bearer token. */
 export async function requireAdmin(c: Context, next: Next) {
-  const configured = process.env.ADMIN_TOKEN;
+  // Accept common misspellings of the variable name (lowercase, stray
+  // whitespace in the value) — a locked-out dashboard helps no one.
+  const configured = (process.env.ADMIN_TOKEN ?? process.env.admin_token)?.trim();
   if (!configured) return c.json({ error: "admin disabled: set ADMIN_TOKEN" }, 503);
   const header = c.req.header("Authorization") ?? "";
   const token = header.startsWith("Bearer ")
     ? header.slice(7)
     : (c.req.query("token") ?? "");
-  if (token !== configured) return c.json({ error: "unauthorized" }, 401);
+  if (token.trim() !== configured) return c.json({ error: "unauthorized" }, 401);
   await next();
 }
