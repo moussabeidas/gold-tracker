@@ -4,14 +4,25 @@ import { AppState } from "react-native";
 import { useGoldPrice } from "@/context/GoldPriceContext";
 import { usePortfolio } from "@/context/PortfolioContext";
 import { publishWidgetSnapshot } from "@/lib/widgetBridge";
+import { initAlerts, checkPriceAgainstTargets } from "@/lib/alerts";
 
 // Mirrors the live price + portfolio figures into the App Group so the
 // WidgetKit extension (and, later, the Live Activity) can render them.
 // Renders nothing — it's a side-effect sink that lives inside both providers.
 export function WidgetSync() {
-  const { anchorPrice, dayOpen } = useGoldPrice();
+  const { anchorPrice, dayOpen, isLive } = useGoldPrice();
   const { totalWeightGrams, totalInvested, purchases } = usePortfolio();
   const lastPublished = useRef(0);
+
+  // Notification handler + background alert task, once per launch.
+  useEffect(() => {
+    initAlerts().catch(() => {});
+  }, []);
+
+  // Prompt in-use alerting: every confirmed price also runs the target check.
+  useEffect(() => {
+    if (isLive) checkPriceAgainstTargets(anchorPrice).catch(() => {});
+  }, [anchorPrice, isLive]);
 
   useEffect(() => {
     // The anchor moves every 30s; that cadence is plenty for a widget, and

@@ -17,7 +17,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.mbeidas.goldtracker",
-      "buildNumber": "29",
+      "buildNumber": "30",
       "supportsTablet": false,
       "requireFullScreen": true,
       "infoPlist": {
@@ -71,7 +71,10 @@
         {
           "appleTeamId": "P2TSL4VJ5H"
         }
-      ]
+      ],
+      "expo-notifications",
+      "expo-task-manager",
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -55,16 +55,20 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^4.0.7",
     "@react-native-community/datetimepicker": "~8.4.7",
     "@react-native-ml-kit/text-recognition": "^2.0.0",
     "expo-apple-authentication": "~8.0.8",
+    "expo-background-task": "~1.0.10",
     "expo-build-properties": "^1.0.10",
+    "expo-clipboard": "~8.0.8",
     "expo-file-system": "~19.0.23",
     "expo-iap": "^4.3.6",
+    "expo-notifications": "~0.32.17",
     "expo-secure-store": "^15.0.8",
     "expo-sharing": "~14.0.8",
+    "expo-task-manager": "~14.0.9",
     "react-native-view-shot": "~4.0.3",
-    "victory-native": "^41.20.2",
-    "@bacons/apple-targets": "^4.0.7"
+    "victory-native": "^41.20.2"
   }
 }

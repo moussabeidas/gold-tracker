@@ -23,7 +23,7 @@ import Animated, {
 import Colors from "@/constants/colors";
 import { useGoldPrice, TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
 import { usePortfolio, GoldPurchase } from "@/context/PortfolioContext";
-import { useSubscription, FREE_LIMIT } from "@/context/SubscriptionContext";
+import { useSubscription } from "@/context/SubscriptionContext";
 import { useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
@@ -154,7 +154,7 @@ export default function PortfolioScreen() {
     return <LoginScreen />;
   }
 
-  const atLimit = !isPro && purchases.length >= FREE_LIMIT;
+  const atLimit = !isPro && purchases.length >= maxItems;
   const currentTotalValue = totalWeightGrams * pricePerGram;
   const totalGain = currentTotalValue - totalInvested;
   const totalGainPct = totalInvested ? (totalGain / totalInvested) * 100 : 0;
@@ -209,14 +209,14 @@ export default function PortfolioScreen() {
         <FocusReveal delay={60} style={styles.tierBanner}>
           <View style={styles.tierLeft}>
             <Text style={styles.tierLabel}>
-              {purchases.length} of {FREE_LIMIT} free slots used
+              {purchases.length} of {maxItems} free slots used
             </Text>
             <View style={styles.tierBar}>
               <View
                 style={[
                   styles.tierFill,
                   {
-                    width: `${Math.min((purchases.length / FREE_LIMIT) * 100, 100)}%`,
+                    width: `${Math.min((purchases.length / maxItems) * 100, 100)}%`,
                     backgroundColor: atLimit ? Colors.dark.negative : Colors.dark.gold,
                   },
                 ]}

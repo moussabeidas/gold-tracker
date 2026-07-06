@@ -22,6 +22,8 @@ import {
   type Purchase,
 } from "expo-iap";
 
+import { useReferral } from "@/context/ReferralContext";
+
 export type PlanId = "free" | "tracker_monthly" | "tracker_annual" | "lifetime";
 
 // Product identifiers — must match the In-App Purchases created in
@@ -227,8 +229,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     await applyPlan("free");
   }, [applyPlan]);
 
-  const isPro = subscription.planId !== "free";
-  const maxItems = isPro ? Infinity : FREE_LIMIT;
+  // Referral rewards: each verified referral adds a portfolio slot, and
+  // hitting the target grants time-boxed Pro without a purchase.
+  const { bonusSlots, hasReferralPro } = useReferral();
+
+  const isPro = subscription.planId !== "free" || hasReferralPro;
+  const maxItems = isPro ? Infinity : FREE_LIMIT + bonusSlots;
 
   return (
     <SubscriptionContext.Provider
