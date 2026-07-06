@@ -13,6 +13,5 @@ COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
 COPY --from=build /app/dist ./dist
 COPY public ./public
-VOLUME /app/data
 EXPOSE 8787
 CMD ["node", "dist/index.js"]
