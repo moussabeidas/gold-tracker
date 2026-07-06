@@ -17,6 +17,7 @@ import { StatusBar } from "expo-status-bar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashAnimation } from "@/components/SplashAnimation";
 import { StatusBarBlur } from "@/components/StatusBarBlur";
+import { WidgetSync } from "@/components/WidgetSync";
 import Colors from "@/constants/colors";
 import { AuthProvider } from "@/lib/auth";
 import { GoldPriceProvider } from "@/context/GoldPriceContext";
@@ -98,6 +99,7 @@ export default function RootLayout() {
                   <SubscriptionProvider>
                     <PortfolioWrapper>
                       <StatusBar style="light" />
+                      <WidgetSync />
                       <RootLayoutNav />
                       <StatusBarBlur />
                       {showCustomSplash && (
