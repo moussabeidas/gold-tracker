@@ -98,6 +98,19 @@
     <h3>Users <input id="q" placeholder="search email / name / code" style="margin-left:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:#101014;color:var(--text)" onkeydown="if(event.key==='Enter')loadUsers()"/></h3>
     <table id="users"><thead><tr><th>Name</th><th>Email</th><th>Code</th><th>Plan</th><th>Joined</th><th>Last seen</th></tr></thead><tbody></tbody></table>
   </div>
+
+  <div class="card wide" style="margin-top:14px">
+    <h3>Copilot — ask anything about your app</h3>
+    <div id="chatLog" style="display:flex;flex-direction:column;gap:10px;max-height:380px;overflow-y:auto;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <input id="chatInput" placeholder='e.g. "How many users signed up this week?" or "Give jane@x.com lifetime Pro"'
+        style="flex:1;padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:#101014;color:var(--text);font-size:14px"
+        onkeydown="if(event.key==='Enter')sendChat()" />
+      <button id="chatSend" onclick="sendChat()"
+        style="padding:11px 18px;border:0;border-radius:10px;background:var(--gold);font-weight:700;cursor:pointer">Ask</button>
+    </div>
+    <div class="err" id="chatErr" style="margin-top:6px"></div>
+  </div>
 </div>
 
 <script>
@@ -176,6 +189,55 @@ async function loadUsers() {
   document.querySelector("#users tbody").innerHTML = data.users
     .map(u => `<tr><td>${[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}</td><td>${u.email || "—"}</td><td>${u.invite_code}</td><td>${u.plan}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_seen_at)}</td></tr>`).join("") ||
     '<tr><td colspan="6" style="color:var(--muted)">No users yet.</td></tr>';
+}
+
+// --- Copilot chat -----------------------------------------------------
+let chatHistory = [];
+
+function chatBubble(role, text) {
+  const div = document.createElement("div");
+  div.style.cssText =
+    role === "you"
+      ? "align-self:flex-end;background:var(--gold);color:#000;padding:9px 13px;border-radius:12px 12px 3px 12px;max-width:85%;font-size:14px;white-space:pre-wrap"
+      : "align-self:flex-start;background:#101014;border:1px solid var(--border);padding:9px 13px;border-radius:12px 12px 12px 3px;max-width:85%;font-size:14px;white-space:pre-wrap";
+  div.textContent = text;
+  document.getElementById("chatLog").appendChild(div);
+  div.scrollIntoView({ block: "end" });
+  return div;
+}
+
+async function sendChat() {
+  const input = document.getElementById("chatInput");
+  const btn = document.getElementById("chatSend");
+  const err = document.getElementById("chatErr");
+  const message = input.value.trim();
+  if (!message || btn.disabled) return;
+  err.textContent = "";
+  input.value = "";
+  chatBubble("you", message);
+  const pending = chatBubble("ai", "Thinking…");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/v1/admin/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + TOKEN,
+      },
+      body: JSON.stringify({ message, history: chatHistory }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "HTTP " + res.status);
+    pending.textContent = data.reply;
+    chatHistory = data.history;
+    render(); // the copilot may have changed data — refresh the stats
+  } catch (e) {
+    pending.remove();
+    err.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
 }
 
 if (TOKEN) login();

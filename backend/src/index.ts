@@ -25,6 +25,7 @@ import {
   requireAdmin,
 } from "./auth.js";
 import { computeStats } from "./stats.js";
+import { runAgentTurn } from "./agent.js";
 
 const REFERRAL_TARGET = 10;
 
@@ -220,6 +221,33 @@ app.post("/v1/appstore/notifications", async (c) => {
 // ---------------------------------------------------------------------------
 
 app.get("/v1/admin/stats", requireAdmin, (c) => c.json(computeStats()));
+
+// AI copilot: chat over the dashboard with tool access to stats, user
+// search, read-only SQL, and plan changes. Requires ANTHROPIC_API_KEY.
+const chatBody = z.object({
+  message: z.string().min(1).max(4000),
+  history: z.array(z.any()).max(200).optional(),
+});
+
+app.post("/v1/admin/chat", requireAdmin, async (c) => {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return c.json(
+      { error: "Set the ANTHROPIC_API_KEY environment variable to enable the copilot." },
+      503
+    );
+  }
+  const parsed = chatBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "bad request" }, 400);
+  try {
+    const result = await runAgentTurn(
+      (parsed.data.history ?? []) as any,
+      parsed.data.message
+    );
+    return c.json(result);
+  } catch (err: any) {
+    return c.json({ error: String(err?.message ?? err) }, 502);
+  }
+});
 
 app.get("/v1/admin/users", requireAdmin, (c) => {
   const q = (c.req.query("q") ?? "").trim();
