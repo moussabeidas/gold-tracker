@@ -91,7 +91,7 @@ struct GoldPriceView: View {
         Spacer().frame(height: 4)
         Text("24K · 999.9")
           .font(.system(size: 10, weight: .medium))
-          .foregroundStyle(.goldTop.opacity(0.8))
+          .foregroundStyle(Color.goldTop.opacity(0.8))
       }
     }
     .padding(18)
