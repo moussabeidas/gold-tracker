@@ -3,6 +3,11 @@ name: EAS iOS Build & Submit
 on:
   push:
     branches: [main]
+    # Backend/docs-only merges must not burn an iOS build + submit.
+    paths-ignore:
+      - "backend/**"
+      - "docs/**"
+      - "**.md"
   workflow_dispatch:
 
 jobs:

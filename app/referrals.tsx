@@ -21,6 +21,7 @@ import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { useReferral } from "@/context/ReferralContext";
 import { usePortfolio } from "@/context/PortfolioContext";
 import { shareMessage, REFERRAL_TARGET } from "@/lib/referral";
+import { track } from "@/lib/analytics";
 
 export default function ReferralsScreen() {
   const insets = useSafeAreaInsets();
@@ -41,6 +42,7 @@ export default function ReferralsScreen() {
 
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    track("referral_share");
     try {
       await Share.share({ message: shareMessage(inviteCode) });
     } catch {}
@@ -85,7 +87,14 @@ export default function ReferralsScreen() {
       return;
     }
     const token = await redeemInviteCode(redeemText);
-    if (token) {
+    if (token === "server") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setRedeemText("");
+      Alert.alert(
+        "You got an extra slot! 🎁",
+        "Your friend has been credited automatically. Enjoy the extra room in your portfolio."
+      );
+    } else if (token) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setRedeemText("");
       Alert.alert(

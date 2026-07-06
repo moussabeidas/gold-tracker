@@ -10,6 +10,8 @@ import { Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as SecureStore from "expo-secure-store";
 
+import { loginWithApple, setSessionToken } from "@/lib/api";
+
 const USER_KEY = "auth_user_v2";
 
 interface User {
@@ -124,6 +126,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         await writeStoredUser(next);
         setUser(next);
+        // Establish a backend session too (fire-and-forget; the app is
+        // fully functional without the server).
+        if (credential.identityToken) {
+          loginWithApple({
+            identityToken: credential.identityToken,
+            firstName: next.firstName,
+            lastName: next.lastName,
+          }).catch(() => {});
+        }
       } catch (err: any) {
         // ERR_REQUEST_CANCELED = user dismissed the sheet; not an error.
         if (err?.code !== "ERR_REQUEST_CANCELED") {
@@ -147,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await writeStoredUser(null);
+    await setSessionToken(null).catch(() => {});
     setUser(null);
   }, []);
 

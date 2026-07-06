@@ -8,6 +8,8 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { track, flush } from "@/lib/analytics";
+
 export interface GoldPurchase {
   id: string;
   type: "bar" | "coin";
@@ -93,6 +95,10 @@ export function PortfolioProvider({
         persist(updated);
         return updated;
       });
+      // Flushed immediately: the referral program's server-side check
+      // requires this event before a redeemed code counts.
+      track("gold_added", { grams: purchase.weightGrams, type: purchase.type });
+      flush().catch(() => {});
     },
     [persist]
   );
