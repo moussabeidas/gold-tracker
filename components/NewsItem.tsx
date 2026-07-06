@@ -14,6 +14,8 @@ export interface NewsArticle {
   summary?: string;
   url?: string;
   thumbnailUrl?: string;
+  /** Feather icon for the placeholder when there's no thumbnail image. */
+  icon?: keyof typeof Feather.glyphMap;
 }
 
 interface NewsItemProps {
@@ -60,9 +62,20 @@ export function NewsItem({ article, isLast }: NewsItemProps) {
         />
       ) : (
         <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
-          <Feather name="file-text" size={20} color={Colors.dark.goldDim} />
+          <Feather
+            name={article.icon ?? "file-text"}
+            size={22}
+            color={Colors.dark.goldDim}
+          />
         </View>
       )}
+      {article.url ? (
+        <Feather
+          name="chevron-right"
+          size={16}
+          color={Colors.dark.textTertiary}
+        />
+      ) : null}
     </AnimatedPressable>
   );
 }

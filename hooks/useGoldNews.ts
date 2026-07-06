@@ -65,9 +65,10 @@ export function useGoldNews() {
         .sort((a, b) => b.publishedAt - a.publishedAt)
         .slice(0, 8);
 
-      // Never pad with off-topic stories — the bundled gold articles are
-      // the fallback when the wire is quiet.
-      if (onTopic.length < 3) return;
+      // Never pad with off-topic stories, but do surface whatever real
+      // headlines arrived — topped up with the bundled gold articles so
+      // the section always has substance.
+      if (onTopic.length === 0) return;
 
       const mapped: NewsArticle[] = onTopic.map((s) => ({
         id: s.id,
@@ -77,8 +78,10 @@ export function useGoldNews() {
         url: s.url,
         thumbnailUrl: s.thumbnailUrl ?? undefined,
       }));
-      cache = { at: Date.now(), articles: mapped };
-      setArticles(mapped);
+      const topUp = GOLD_NEWS.slice(0, Math.max(0, 5 - mapped.length));
+      const combined = [...mapped, ...topUp];
+      cache = { at: Date.now(), articles: combined };
+      setArticles(combined);
       setIsLive(true);
     });
     return () => {

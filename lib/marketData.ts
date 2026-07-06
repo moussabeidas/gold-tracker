@@ -15,7 +15,12 @@ export interface Quote {
 }
 
 const BASE = "https://query1.finance.yahoo.com/v8/finance/chart";
-const SEARCH_BASE = "https://query1.finance.yahoo.com/v1/finance/search";
+// Both public Yahoo hosts serve the search endpoint; try them in order in
+// case one throttles the app's requests.
+const SEARCH_BASES = [
+  "https://query1.finance.yahoo.com/v1/finance/search",
+  "https://query2.finance.yahoo.com/v1/finance/search",
+];
 
 export interface NewsStory {
   id: string;
@@ -148,10 +153,22 @@ export async function fetchNews(
   query: string,
   count = 8
 ): Promise<NewsStory[] | null> {
+  for (const base of SEARCH_BASES) {
+    const stories = await fetchNewsFrom(base, query, count);
+    if (stories) return stories;
+  }
+  return null;
+}
+
+async function fetchNewsFrom(
+  base: string,
+  query: string,
+  count: number
+): Promise<NewsStory[] | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const url = `${SEARCH_BASE}?q=${encodeURIComponent(query)}&newsCount=${count}&quotesCount=0`;
+    const url = `${base}?q=${encodeURIComponent(query)}&newsCount=${count}&quotesCount=0`;
     const res = await fetch(url, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
