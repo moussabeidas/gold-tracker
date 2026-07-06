@@ -8,6 +8,8 @@ each target's build settings after `expo prebuild`. Run from the repo root:
 
     python3 store-assets/fix-signing.py ios/GoldPricer.xcodeproj/project.pbxproj
 """
+import glob
+import os
 import re
 import sys
 
@@ -45,6 +47,27 @@ def patch_block(body: str, bundle_id: str) -> str:
     return body
 
 
+def strip_push_entitlement(pbxproj_path: str) -> None:
+    """Remove aps-environment from the app's entitlements.
+
+    expo-notifications' autolinked config plugin injects it, but we only use
+    LOCAL notifications — no push — and the distribution profile doesn't
+    carry the Push Notifications capability, so archiving fails with it in.
+    """
+    ios_dir = os.path.dirname(os.path.dirname(pbxproj_path))
+    root = os.path.dirname(ios_dir)
+    for ent in glob.glob(os.path.join(root, "ios", "*", "*.entitlements")):
+        text = open(ent).read()
+        cleaned = re.sub(
+            r"[ \t]*<key>aps-environment</key>\s*<string>[^<]*</string>\n?",
+            "",
+            text,
+        )
+        if cleaned != text:
+            open(ent, "w").write(cleaned)
+            print(f"Stripped aps-environment from {ent}")
+
+
 def main(path: str) -> None:
     text = open(path).read()
     patched = 0
@@ -66,6 +89,7 @@ def main(path: str) -> None:
 
     open(path, "w").write(text)
     print(f"Patched manual signing on {patched} build configuration(s).")
+    strip_push_entitlement(path)
 
 
 if __name__ == "__main__":
