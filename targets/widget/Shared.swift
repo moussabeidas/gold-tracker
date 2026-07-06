@@ -27,9 +27,18 @@ struct GoldSnapshot {
   )
 
   static func load() -> GoldSnapshot {
-    guard
-      let dict = UserDefaults(suiteName: APP_GROUP)?.dictionary(forKey: "goldWidget")
-    else { return .fallback }
+    let defaults = UserDefaults(suiteName: APP_GROUP)
+    // ExtensionStorage.setObject stores the payload as JSON *Data*, not a
+    // plist dictionary — decode that first, with dictionary(forKey:) kept
+    // as a fallback in case the storage format ever changes.
+    var stored: [String: Any]? = nil
+    if let data = defaults?.data(forKey: "goldWidget") {
+      stored = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+    }
+    if stored == nil {
+      stored = defaults?.dictionary(forKey: "goldWidget")
+    }
+    guard let dict = stored else { return .fallback }
     let updated = asDouble(dict["updatedAt"]) ?? Date().timeIntervalSince1970
     return GoldSnapshot(
       price: asDouble(dict["price"]) ?? fallback.price,
