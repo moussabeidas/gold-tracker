@@ -77,7 +77,7 @@ function MenuRow({
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, deleteAccount } = useAuth();
   const { purchases, totalWeightGrams, totalInvested } = usePortfolio();
   const { isPro, subscription, revertToFree } = useSubscription();
   const { referredCount, hasReferralPro } = useReferral();
@@ -138,6 +138,41 @@ export default function ProfileScreen() {
     user.firstName && user.lastName
       ? `${user.firstName[0]}${user.lastName[0]}`
       : (user.firstName?.[0] ?? user.email?.[0] ?? "U").toUpperCase();
+
+  const handleDeleteAccount = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(
+      "Delete Account?",
+      "This permanently deletes your account and all data:\n\n\u2022 Your " +
+        "portfolio on this device (cannot be recovered)\n\u2022 Your account, " +
+        "referral history, and usage data on our server\n\nActive Apple " +
+        "subscriptions are NOT canceled by this \u2014 manage those in " +
+        "Settings \u2192 Apple ID \u2192 Subscriptions.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Everything",
+          style: "destructive",
+          onPress: () =>
+            Alert.alert(
+              "Are you absolutely sure?",
+              "There is no undo. Your portfolio records will be gone.",
+              [
+                { text: "Keep My Account", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: () => {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                    deleteAccount();
+                  },
+                },
+              ]
+            ),
+        },
+      ]
+    );
+  };
 
   const handleLogout = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -342,6 +377,12 @@ export default function ProfileScreen() {
             icon="log-out"
             label="Sign Out"
             onPress={handleLogout}
+            danger
+          />
+          <MenuRow
+            icon="trash-2"
+            label="Delete Account"
+            onPress={handleDeleteAccount}
             danger
             isLast
           />

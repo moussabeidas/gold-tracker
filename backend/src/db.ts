@@ -177,3 +177,17 @@ export function referralCount(referrerId: string): number {
     .get(referrerId) as { n: number };
   return row.n;
 }
+
+/** Erase a user and everything attached to them (GDPR/App Store deletion). */
+export function deleteUser(userId: string): void {
+  const wipe = db.transaction(() => {
+    db.prepare("DELETE FROM events WHERE user_id = ?").run(userId);
+    db.prepare("DELETE FROM referrals WHERE referrer_id = ? OR referee_id = ?").run(
+      userId,
+      userId
+    );
+    db.prepare("UPDATE users SET referred_by = NULL WHERE referred_by = ?").run(userId);
+    db.prepare("DELETE FROM users WHERE id = ?").run(userId);
+  });
+  wipe();
+}

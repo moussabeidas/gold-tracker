@@ -32,7 +32,7 @@ export async function setSessionToken(token: string | null): Promise<void> {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "DELETE";
   body?: unknown;
   auth?: boolean;
   timeoutMs?: number;
@@ -90,4 +90,10 @@ export async function loginWithApple(input: {
     return true;
   }
   return false;
+}
+
+/** Delete the backend account record; true only when the server confirmed. */
+export async function deleteBackendAccount(): Promise<boolean> {
+  const result = await api<{ ok: boolean }>("/v1/me", { method: "DELETE" });
+  return !!result?.ok;
 }
