@@ -10,7 +10,9 @@ import { Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as SecureStore from "expo-secure-store";
 
-import { loginWithApple, setSessionToken } from "@/lib/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { loginWithApple, setSessionToken, deleteBackendAccount } from "@/lib/api";
 
 const USER_KEY = "auth_user_v2";
 
@@ -28,6 +30,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  /** Erase the backend account record and all app data on this device. */
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -36,6 +40,7 @@ const AuthContext = createContext<AuthContextValue>({
   isAuthenticated: false,
   login: async () => {},
   logout: async () => {},
+  deleteAccount: async () => {},
 });
 
 async function readStoredUser(): Promise<User | null> {
@@ -162,6 +167,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    // Server record first (needs the still-valid session), then the device.
+    await deleteBackendAccount().catch(() => {});
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const appKeys = keys.filter((k) => k.startsWith("@gold_"));
+      if (appKeys.length) await AsyncStorage.multiRemove(appKeys);
+    } catch {}
+    await setSessionToken(null).catch(() => {});
+    await writeStoredUser(null);
+    setUser(null);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -170,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         logout,
+        deleteAccount,
       }}
     >
       {children}

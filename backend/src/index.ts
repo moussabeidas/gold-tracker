@@ -17,6 +17,7 @@ import {
   hasEvent,
   createReferral,
   referralCount,
+  deleteUser,
 } from "./db.js";
 import {
   verifyAppleIdentityToken,
@@ -88,6 +89,15 @@ app.get("/v1/me", requireUser, (c) => {
     inviteCode: user.invite_code,
     plan: user.plan,
   });
+});
+
+// Account deletion (App Store Guideline 5.1.1(v)): erases the user row,
+// their events, and their referral links in one transaction.
+app.delete("/v1/me", requireUser, (c) => {
+  const userId = c.get("userId");
+  if (!getUser(userId)) return c.json({ error: "not found" }, 404);
+  deleteUser(userId);
+  return c.json({ ok: true });
 });
 
 // ---------------------------------------------------------------------------

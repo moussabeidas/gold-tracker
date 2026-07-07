@@ -17,7 +17,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.mbeidas.goldtracker",
-      "buildNumber": "33",
+      "buildNumber": "34",
       "supportsTablet": false,
       "requireFullScreen": true,
       "infoPlist": {
