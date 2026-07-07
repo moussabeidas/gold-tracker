@@ -188,6 +188,7 @@ export default function WatchlistScreen() {
 
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="never"
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,

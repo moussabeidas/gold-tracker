@@ -144,6 +144,7 @@ export default function MarketScreen() {
 
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="never"
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,

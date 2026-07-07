@@ -141,6 +141,7 @@ export default function GoldScreen() {
 
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="never"
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,

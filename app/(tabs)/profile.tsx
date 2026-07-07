@@ -184,6 +184,7 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="never"
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,

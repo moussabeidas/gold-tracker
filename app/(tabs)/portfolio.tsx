@@ -176,6 +176,7 @@ export default function PortfolioScreen() {
 
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="never"
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,
