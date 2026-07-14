@@ -39,12 +39,17 @@ const FEATURES = [
 
 export function PaywallScreen() {
   const insets = useSafeAreaInsets();
-  const { subscribe, restore, pricing, storeReady, isPro } = useSubscription();
+  const { subscribe, restore, pricing, storeReady, isPro, refreshProducts } =
+    useSubscription();
   const [selected, setSelected] = useState<PaidPlan>("tracker_annual");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     track("paywall_view");
+    // Products may have failed to load at launch — retry as the paywall
+    // opens so prices and purchasing are ready by the time the user taps.
+    if (!storeReady) refreshProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // The preferred plan breathes: a gold glow cycles on its border
