@@ -197,7 +197,7 @@ export default function WatchlistScreen() {
           paddingBottom:
             Platform.OS === "web"
               ? insets.bottom + 34 + 84
-              : insets.bottom + 20,
+              : insets.bottom + 108,
         },
       ]}
       showsVerticalScrollIndicator={false}
