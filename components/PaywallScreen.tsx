@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -29,6 +30,12 @@ import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { SpinningCoin } from "@/components/SpinningCoin";
 
 type PaidPlan = Exclude<PlanId, "free">;
+
+// App Review guideline 3.1.2(c): the purchase screen must carry functional
+// links to both documents.
+const TERMS_URL =
+  "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
+const PRIVACY_URL = "https://moussabeidas.github.io/gold-tracker/privacy.html";
 
 const FEATURES = [
   { icon: "layers" as const, text: "Unlimited portfolio holdings" },
@@ -279,6 +286,24 @@ export function PaywallScreen() {
             ? "Payment is charged to your Apple ID through the App Store. Monthly and Annual renew automatically until canceled in Settings → Apple ID → Subscriptions at least 24h before the period ends. Lifetime is a one-time purchase."
             : "Store connection unavailable — purchases can't be completed right now."}
         </Text>
+
+        <View style={styles.legalLinks}>
+          <Text
+            style={styles.legalLink}
+            onPress={() => Linking.openURL(TERMS_URL)}
+            suppressHighlighting
+          >
+            Terms of Use (EULA)
+          </Text>
+          <Text style={styles.legalDot}>·</Text>
+          <Text
+            style={styles.legalLink}
+            onPress={() => Linking.openURL(PRIVACY_URL)}
+            suppressHighlighting
+          >
+            Privacy Policy
+          </Text>
+        </View>
       </Animated.View>
     </ScrollView>
   );
@@ -392,7 +417,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeText: {
-    fontSize: 9.5,
+    fontSize: 10.5,
     fontFamily: "Inter_700Bold",
     color: "#000",
     letterSpacing: 0.6,
@@ -412,9 +437,9 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
   },
   planPeriod: {
-    fontSize: 11.5,
+    fontSize: 12.5,
     fontFamily: "Inter_400Regular",
-    color: Colors.dark.textTertiary,
+    color: Colors.dark.textSecondary,
   },
   radio: {
     width: 22,
@@ -450,10 +475,29 @@ const styles = StyleSheet.create({
     color: Colors.dark.gold,
   },
   finePrint: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
-    color: Colors.dark.textTertiary,
+    color: Colors.dark.textSecondary,
     textAlign: "center",
-    lineHeight: 16,
+    lineHeight: 17,
+  },
+  legalLinks: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    paddingBottom: 6,
+  },
+  legalLink: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.dark.gold,
+    textDecorationLine: "underline",
+    paddingVertical: 6,
+  },
+  legalDot: {
+    color: Colors.dark.textSecondary,
+    fontSize: 13,
   },
 });

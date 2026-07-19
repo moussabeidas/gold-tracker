@@ -190,10 +190,12 @@ export default function ProfileScreen() {
         styles.content,
         {
           paddingTop: topPad,
+          // Native tab bar floats over content on iOS — pad well past it so
+          // the last row (Delete Account) can scroll fully into view.
           paddingBottom:
             Platform.OS === "web"
               ? insets.bottom + 34 + 84
-              : insets.bottom + 20,
+              : insets.bottom + 108,
         },
       ]}
       showsVerticalScrollIndicator={false}

@@ -11,7 +11,7 @@ const Colors = {
     border: "#2C2C2E",
     text: "#FFFFFF",
     textSecondary: "rgba(255,255,255,0.55)",
-    textTertiary: "rgba(255,255,255,0.30)",
+    textTertiary: "rgba(255,255,255,0.50)",
     gold,
     goldLight,
     goldDim,
