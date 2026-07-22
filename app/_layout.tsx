@@ -20,6 +20,7 @@ import { StatusBarBlur } from "@/components/StatusBarBlur";
 import { WidgetSync } from "@/components/WidgetSync";
 import Colors from "@/constants/colors";
 import { AuthProvider } from "@/lib/auth";
+import { CurrencyProvider } from "@/context/CurrencyContext";
 import { GoldPriceProvider } from "@/context/GoldPriceContext";
 import { PortfolioProvider } from "@/context/PortfolioContext";
 import { ReferralProvider } from "@/context/ReferralContext";
@@ -92,6 +93,15 @@ function RootLayoutNav() {
           contentStyle: { backgroundColor: Colors.dark.background },
         }}
       />
+      <Stack.Screen
+        name="currency-settings"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          contentStyle: { backgroundColor: Colors.dark.background },
+        }}
+      />
     </Stack>
   );
 }
@@ -123,6 +133,7 @@ export default function RootLayout() {
           >
             <KeyboardProvider>
               <AuthProvider>
+                <CurrencyProvider>
                 <GoldPriceProvider>
                   <ReferralProvider>
                   <SubscriptionProvider>
@@ -138,6 +149,7 @@ export default function RootLayout() {
                   </SubscriptionProvider>
                   </ReferralProvider>
                 </GoldPriceProvider>
+                </CurrencyProvider>
               </AuthProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

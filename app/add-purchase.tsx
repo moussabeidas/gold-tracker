@@ -490,7 +490,7 @@ export default function AddPurchaseScreen() {
             suffix="grams"
           />
           <InputField
-            label="Price Paid"
+            label="Price Paid (USD)"
             value={pricePaid}
             onChangeText={handlePriceChange}
             placeholder="3,150.00"

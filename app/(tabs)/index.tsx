@@ -14,6 +14,7 @@ import * as Haptics from "expo-haptics";
 import { FocusReveal } from "@/components/FocusReveal";
 
 import Colors from "@/constants/colors";
+import { useCurrency } from "@/context/CurrencyContext";
 import { useGoldData, TimeRange } from "@/hooks/useGoldData";
 import { GoldChart } from "@/components/GoldChart";
 import { PriceHeader } from "@/components/PriceHeader";
@@ -24,13 +25,6 @@ import { useGoldNews } from "@/hooks/useGoldNews";
 import { ShareGoldButton } from "@/components/ShareGoldButton";
 
 const { width: SCREEN_W } = Dimensions.get("window");
-
-function formatPrice(price: number) {
-  return price.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
 
 function formatTime(timestamp: number, range: TimeRange) {
   const d = new Date(timestamp);
@@ -73,6 +67,7 @@ export default function GoldScreen() {
     refresh,
     scale,
   } = useGoldData(range);
+  const { fmt } = useCurrency();
   const { articles } = useGoldNews();
 
   const handleScrub = useCallback(
@@ -101,12 +96,12 @@ export default function GoldScreen() {
   const statsRow1 = [
     {
       label: "Open",
-      value: data.length ? `$${formatPrice(data[0].price)}` : "—",
+      value: data.length ? fmt(data[0].price, { decimals: 2 }) : "—",
     },
     {
       label: "High",
       value: data.length
-        ? `$${formatPrice(Math.max(...data.map((d) => d.price)))}`
+        ? fmt(Math.max(...data.map((d) => d.price)), { decimals: 2 })
         : "—",
     },
   ];
@@ -115,21 +110,22 @@ export default function GoldScreen() {
     {
       label: "Low",
       value: data.length
-        ? `$${formatPrice(Math.min(...data.map((d) => d.price)))}`
+        ? fmt(Math.min(...data.map((d) => d.price)), { decimals: 2 })
         : "—",
     },
     {
       label: "52W High",
-      value: `$${formatPrice(
-        week52 ? Math.max(week52.high, currentPrice) : Math.max(3217.4 * scale, currentPrice)
-      )}`,
+      value: fmt(
+        week52 ? Math.max(week52.high, currentPrice) : Math.max(3217.4 * scale, currentPrice),
+        { decimals: 2 }
+      ),
     },
   ];
 
   const statsRow3 = [
     {
       label: "52W Low",
-      value: `$${formatPrice(week52 ? week52.low : 2164.4 * scale)}`,
+      value: fmt(week52 ? week52.low : 2164.4 * scale, { decimals: 2 }),
     },
     { label: "Volume", value: "$148.2B" },
   ];

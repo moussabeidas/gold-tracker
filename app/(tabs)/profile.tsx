@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 import { FocusReveal } from "@/components/FocusReveal";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/lib/auth";
+import { useCurrency } from "@/context/CurrencyContext";
 import { usePortfolio } from "@/context/PortfolioContext";
 import { useReferral } from "@/context/ReferralContext";
 import { useSubscription } from "@/context/SubscriptionContext";
@@ -78,6 +79,7 @@ function MenuRow({
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, isAuthenticated, logout, deleteAccount } = useAuth();
+  const { currency, convert, fmt } = useCurrency();
   const { purchases, totalWeightGrams, totalInvested } = usePortfolio();
   const { isPro, subscription, revertToFree } = useSubscription();
   const { referredCount, hasReferralPro } = useReferral();
@@ -238,7 +240,9 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>
-            ${(totalInvested / 1000).toFixed(1)}K
+            {convert(totalInvested) >= 1000
+              ? `${fmt(0, { decimals: 0 }).replace(/[\d.,-]+/g, "")}${(convert(totalInvested) / 1000).toFixed(1)}K`
+              : fmt(totalInvested, { decimals: 0 })}
           </Text>
           <Text style={styles.statLabel}>Invested</Text>
         </View>
@@ -328,6 +332,15 @@ export default function ProfileScreen() {
             onPress={() => {
               Haptics.selectionAsync();
               router.push("/alerts-settings");
+            }}
+          />
+          <MenuRow
+            icon="dollar-sign"
+            label="Currency"
+            value={currency.code}
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/currency-settings");
             }}
             isLast
           />

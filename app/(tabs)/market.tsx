@@ -25,6 +25,7 @@ import Animated, {
 
 import Colors from "@/constants/colors";
 import { useGoldPrice } from "@/context/GoldPriceContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
 
 const NOTIFY_KEY = "@gold_marketplace_notify";
@@ -64,6 +65,7 @@ function PreviewListing({
   index: number;
 }) {
   const { pricePerGram } = useGoldPrice();
+  const { fmt } = useCurrency();
   const grams = parseFloat(weight);
   const price = grams * pricePerGram * (1 + premiumPct / 100);
   const isIOS = Platform.OS === "ios";
@@ -87,11 +89,7 @@ function PreviewListing({
       </View>
       <View style={styles.listingRight}>
         <Text style={styles.listingPrice}>
-          $
-          {price.toLocaleString("en-US", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          })}
+          {fmt(price, { decimals: 0 })}
         </Text>
         <View style={styles.lockBadge}>
           <Feather name="lock" size={10} color={Colors.dark.textTertiary} />

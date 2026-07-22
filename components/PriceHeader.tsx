@@ -10,6 +10,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import Colors from "@/constants/colors";
+import { useCurrency } from "@/context/CurrencyContext";
 import { useSpotPrice } from "@/context/GoldPriceContext";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -20,13 +21,6 @@ interface PriceHeaderProps {
   isPositive: boolean;
   scrubPrice: number | null;
   isLive?: boolean;
-}
-
-function formatPrice(price: number) {
-  return price.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 
 function LiveIndicator() {
@@ -63,6 +57,7 @@ export function PriceHeader({
   isLive = false,
 }: PriceHeaderProps) {
   const spotPrice = useSpotPrice();
+  const { currency, fmt } = useCurrency();
   const displayPrice = scrubPrice ?? spotPrice;
   const color = isPositive ? Colors.dark.positive : Colors.dark.negative;
   const bgColor = isPositive
@@ -102,11 +97,11 @@ export function PriceHeader({
   return (
     <View style={styles.container}>
       <View style={styles.symbolRow}>
-        <Text style={styles.symbol}>GOLD · XAU/USD</Text>
+        <Text style={styles.symbol}>GOLD · XAU/{currency.code}</Text>
         {isLive && scrubPrice === null && <LiveIndicator />}
       </View>
       <Animated.Text style={[styles.price, scrubPrice === null && priceStyle]}>
-        ${formatPrice(displayPrice)}
+        {fmt(displayPrice, { decimals: 2 })}
       </Animated.Text>
       <Text style={styles.unit}>per troy ounce · 24K (999.9 fine)</Text>
       {scrubPrice === null && (
@@ -114,7 +109,7 @@ export function PriceHeader({
           <Ionicons name={iconName} size={11} color={color} style={styles.caret} />
           <Text style={[styles.changeText, { color }]}>
             {isPositive ? "+" : ""}
-            {formatPrice(Math.abs(change))} ({isPositive ? "+" : ""}
+            {fmt(Math.abs(change), { decimals: 2 })} ({isPositive ? "+" : ""}
             {changePct.toFixed(2)}%)
           </Text>
         </View>

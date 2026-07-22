@@ -5,6 +5,7 @@ import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 
 import { fetchQuote, fetchNews } from "./marketData";
+import { formatInCurrency, loadCurrencyState } from "./currency";
 
 // Price-alert engine. Preferences live in AsyncStorage; a background task
 // polls the spot price every ~15+ minutes (iOS decides the exact cadence)
@@ -133,15 +134,6 @@ async function readPortfolioGrams(): Promise<number> {
   }
 }
 
-function fmtUsd(n: number): string {
-  const abs = Math.abs(n);
-  const digits = abs >= 100 ? 0 : 2;
-  return abs.toLocaleString("en-US", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
-}
-
 /** Compose today's brief from live data; falls back to the generic nudge. */
 async function composeBriefContent(): Promise<{ title: string; body: string }> {
   const fallback = {
@@ -149,12 +141,13 @@ async function composeBriefContent(): Promise<{ title: string; body: string }> {
     body: "See how gold moved overnight and where your portfolio stands.",
   };
   try {
-    const [quote, grams, stories] = await Promise.all([
+    const [quote, grams, stories, cur] = await Promise.all([
       fetchQuote("XAUUSD=X", 500, 20000).then(
         (q) => q ?? fetchQuote("GC=F", 500, 20000)
       ),
       readPortfolioGrams(),
       fetchNews("gold price market", 3).catch(() => null),
+      loadCurrencyState(),
     ]);
     if (!quote) return fallback;
 
@@ -164,16 +157,17 @@ async function composeBriefContent(): Promise<{ title: string; body: string }> {
     const dir = up ? "up" : "down";
     const title = `Gold ${dir} ${pct}% this morning ${arrow}`;
 
+    const price = formatInCurrency(quote.price, cur, { decimals: 2 });
     let body: string;
     if (grams > 0) {
       const deltaUsd =
         (grams / GRAMS_PER_TROY_OZ) * (quote.price - quote.prevClose);
       const gained = deltaUsd >= 0 ? "gained" : "lost";
       body =
-        `Gold is ${dir} ${pct}% overnight at $${fmtUsd(quote.price)}/oz — ` +
-        `your ${Math.round(grams)}g holding ${gained} $${fmtUsd(deltaUsd)}.`;
+        `Gold is ${dir} ${pct}% overnight at ${price}/oz — ` +
+        `your ${Math.round(grams)}g holding ${gained} ${formatInCurrency(Math.abs(deltaUsd), cur)}.`;
     } else {
-      body = `Gold is ${dir} ${pct}% overnight at $${fmtUsd(quote.price)}/oz.`;
+      body = `Gold is ${dir} ${pct}% overnight at ${price}/oz.`;
     }
 
     const headline = stories?.[0]?.title?.trim();

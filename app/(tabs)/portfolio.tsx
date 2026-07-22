@@ -28,17 +28,11 @@ import { useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { CountUp } from "@/components/CountUp";
+import { useCurrency } from "@/context/CurrencyContext";
 import { FocusReveal } from "@/components/FocusReveal";
 import { SpinningCoin } from "@/components/SpinningCoin";
 import { formatYmd } from "@/lib/dates";
 import { resolveImageUri } from "@/lib/images";
-
-function formatCurrency(n: number) {
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
 
 function PurchaseCard({
   item,
@@ -70,6 +64,7 @@ function PurchaseCard({
   };
 
   const formattedDate = formatYmd(item.purchaseDate);
+  const { fmt } = useCurrency();
   const weightOz = (item.weightGrams / TROY_OUNCE_GRAMS).toFixed(4);
   const displayImage = resolveImageUri(item.imageUri);
 
@@ -119,16 +114,16 @@ function PurchaseCard({
         <View style={styles.cardBottom}>
           <View style={styles.cardStat}>
             <Text style={styles.cardStatLabel}>Cost Basis</Text>
-            <Text style={styles.cardStatValue}>${formatCurrency(item.pricePaid)}</Text>
+            <Text style={styles.cardStatValue}>{fmt(item.pricePaid, { decimals: 2 })}</Text>
           </View>
           <View style={styles.cardStat}>
             <Text style={styles.cardStatLabel}>Current Value</Text>
-            <Text style={styles.cardStatValue}>${formatCurrency(currentValue)}</Text>
+            <Text style={styles.cardStatValue}>{fmt(currentValue, { decimals: 2 })}</Text>
           </View>
           <View style={styles.cardStat}>
             <Text style={styles.cardStatLabel}>Gain / Loss</Text>
             <Text style={[styles.cardStatValue, { color: gainColor }]}>
-              {isPositive ? "+" : ""}${formatCurrency(Math.abs(gain))}
+              {isPositive ? "+" : ""}{fmt(Math.abs(gain), { decimals: 2 })}
               {"\n"}
               <Text style={[styles.cardStatSmall, { color: gainColor }]}>
                 {isPositive ? "+" : ""}{gainPct.toFixed(1)}%
@@ -161,6 +156,7 @@ export default function PortfolioScreen() {
   const isGainPositive = totalGain >= 0;
   const gainColor = isGainPositive ? Colors.dark.positive : Colors.dark.negative;
   const totalOz = (totalWeightGrams / TROY_OUNCE_GRAMS).toFixed(4);
+  const { currency, convert, fmt } = useCurrency();
 
   const topPad =
     Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
@@ -240,8 +236,8 @@ export default function PortfolioScreen() {
         <FocusReveal delay={110} style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Total Value</Text>
           <CountUp
-            value={currentTotalValue}
-            prefix="$"
+            value={convert(currentTotalValue)}
+            prefix={/[A-Za-z]$/.test(currency.symbol) ? `${currency.symbol} ` : currency.symbol}
             style={styles.summaryValue}
           />
 
@@ -257,14 +253,14 @@ export default function PortfolioScreen() {
             <View style={styles.summaryItem}>
               <Text style={styles.summaryItemLabel}>Cost Basis</Text>
               <Text style={styles.summaryItemValue}>
-                ${formatCurrency(totalInvested)}
+                {fmt(totalInvested, { decimals: 2 })}
               </Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryItemLabel}>Total Gain</Text>
               <Text style={[styles.summaryItemValue, { color: gainColor }]}>
-                {isGainPositive ? "+" : ""}${formatCurrency(Math.abs(totalGain))}
+                {isGainPositive ? "+" : ""}{fmt(Math.abs(totalGain), { decimals: 2 })}
               </Text>
               <Text style={[styles.summaryItemSub, { color: gainColor }]}>
                 {isGainPositive ? "+" : ""}{totalGainPct.toFixed(1)}%
