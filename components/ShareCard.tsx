@@ -2,6 +2,7 @@ import React, { forwardRef } from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
+import { useCurrency } from "@/context/CurrencyContext";
 
 const COIN = require("@/assets/images/splash-icon.png");
 
@@ -12,17 +13,11 @@ export interface ShareCardData {
   isPositive: boolean;
 }
 
-function money(n: number) {
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
 // A fixed-size branded card captured off-screen and shared via the native
 // share sheet. Rendered at 2x for crisp output.
 export const ShareCard = forwardRef<View, { data: ShareCardData }>(
   ({ data }, ref) => {
+    const { fmt } = useCurrency();
     const color = data.isPositive ? Colors.dark.positive : Colors.dark.negative;
     const today = new Date().toLocaleDateString("en-US", {
       weekday: "long",
@@ -46,12 +41,12 @@ export const ShareCard = forwardRef<View, { data: ShareCardData }>(
 
         <View style={styles.center}>
           <Text style={styles.symbol}>GOLD · XAU/USD</Text>
-          <Text style={styles.price}>${money(data.price)}</Text>
+          <Text style={styles.price}>{fmt(data.price, { decimals: 2 })}</Text>
           <Text style={styles.unit}>per troy ounce · 24K (999.9 fine)</Text>
           <View style={[styles.badge, { borderColor: color }]}>
             <Text style={[styles.badgeText, { color }]}>
               {data.isPositive ? "▲ " : "▼ "}
-              {money(Math.abs(data.change))} ({data.isPositive ? "+" : ""}
+              {fmt(Math.abs(data.change), { decimals: 2 })} ({data.isPositive ? "+" : ""}
               {data.changePct.toFixed(2)}%) today
             </Text>
           </View>

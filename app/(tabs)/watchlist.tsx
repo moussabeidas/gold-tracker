@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import Colors from "@/constants/colors";
+import { useCurrency } from "@/context/CurrencyContext";
 import { useGoldPrice, useSpotPrice, TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
 import * as Haptics from "expo-haptics";
 import { FocusReveal } from "@/components/FocusReveal";
@@ -48,13 +49,6 @@ const PURITIES: { karat: string; fraction: number; name: string }[] = [
   { karat: "14K", fraction: 14 / 24, name: "58.3% fine · 585" },
   { karat: "10K", fraction: 10 / 24, name: "41.7% fine · 417" },
 ];
-
-function formatUsd(n: number) {
-  return `$${n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
   const [pressed, setPressed] = useState(false);
@@ -151,6 +145,7 @@ function MetalRow({ item, isLast }: { item: MetalItem; isLast?: boolean }) {
 // Every purity is a fraction of the live spot, so they share gold's day %.
 function PurityRows({ dayOpen }: { dayOpen: number }) {
   const spotPrice = useSpotPrice();
+  const { fmt } = useCurrency();
   const pricePerGram = spotPrice / TROY_OUNCE_GRAMS;
   const goldPct = dayOpen ? ((spotPrice - dayOpen) / dayOpen) * 100 : 0;
   const pctText = `${goldPct >= 0 ? "+" : ""}${goldPct.toFixed(2)}%`;
@@ -168,7 +163,7 @@ function PurityRows({ dayOpen }: { dayOpen: number }) {
               iconLabel: p.karat,
               symbol: `${p.karat} Gold`,
               name: p.name,
-              price: `${formatUsd(price)}/g`,
+              price: `${fmt(price, { decimals: 2 })}/g`,
               change: "",
               changePct: pctText,
               isPositive: goldPct >= 0,
