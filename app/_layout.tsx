@@ -19,6 +19,7 @@ import { SplashAnimation } from "@/components/SplashAnimation";
 import { StatusBarBlur } from "@/components/StatusBarBlur";
 import { WidgetSync } from "@/components/WidgetSync";
 import Colors from "@/constants/colors";
+import { track } from "@/lib/analytics";
 import { AuthProvider } from "@/lib/auth";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { GoldPriceProvider } from "@/context/GoldPriceContext";
@@ -94,6 +95,15 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="invite"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          contentStyle: { backgroundColor: Colors.dark.background },
+        }}
+      />
+      <Stack.Screen
         name="currency-settings"
         options={{
           headerShown: false,
@@ -121,6 +131,11 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  // One funnel event per cold start.
+  useEffect(() => {
+    track("app_open");
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 

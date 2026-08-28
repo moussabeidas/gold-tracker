@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useAuth } from "@/lib/auth";
 import { api, apiEnabled } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import {
   inviteCodeForUser,
   mintClaimToken,
@@ -34,6 +35,11 @@ interface ReferralState {
   redeemedCode: string | null;
   /** Epoch ms until which the 10-referral Pro reward runs (0 = none). */
   proUntil: number;
+  /**
+   * Offline-handshake claim token minted when this user redeemed a code
+   * without the server — shared back to the referrer as a thanks link.
+   */
+  thanksToken: string | null;
 }
 
 interface ReferralContextValue {
@@ -55,9 +61,16 @@ interface ReferralContextValue {
   redeemedCode: string | null;
   /** As the referrer: enter a friend's claim token → credit the referral. */
   claimReferral: (token: string) => Promise<"ok" | "invalid" | "duplicate">;
+  /** Offline-path claim token still owed to the referrer (null when none). */
+  thanksToken: string | null;
 }
 
-const EMPTY: ReferralState = { claimedNonces: [], redeemedCode: null, proUntil: 0 };
+const EMPTY: ReferralState = {
+  claimedNonces: [],
+  redeemedCode: null,
+  proUntil: 0,
+  thanksToken: null,
+};
 
 const ReferralContext = createContext<ReferralContextValue>({
   inviteCode: "",
@@ -68,7 +81,15 @@ const ReferralContext = createContext<ReferralContextValue>({
   redeemInviteCode: async () => null,
   redeemedCode: null,
   claimReferral: async () => "invalid",
+  thanksToken: null,
 });
+
+/** Invite code captured from a tapped link before the user signed in. */
+const PENDING_INVITE_KEY = "@gold_pending_invite_v1";
+
+export async function storePendingInvite(code: string): Promise<void> {
+  await AsyncStorage.setItem(PENDING_INVITE_KEY, code).catch(() => {});
+}
 
 const STORAGE_KEY = "@gold_referrals_v1";
 
@@ -109,6 +130,24 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
 
   const inviteCode = useMemo(() => inviteCodeForUser(userId), [userId]);
 
+  // A link tapped before sign-in parks its code; redeem it once a real
+  // user exists so the invitee never has to re-tap anything.
+  useEffect(() => {
+    if (userId === "anonymous" || state.redeemedCode) return;
+    let cancelled = false;
+    AsyncStorage.getItem(PENDING_INVITE_KEY)
+      .then(async (code) => {
+        if (cancelled || !code) return;
+        await AsyncStorage.removeItem(PENDING_INVITE_KEY).catch(() => {});
+        await redeemInviteCode(code);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, state.redeemedCode]);
+
   const redeemInviteCode = useCallback(
     async (code: string): Promise<string | null> => {
       if (!isValidInviteCodeFormat(code)) return null;
@@ -125,6 +164,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
         });
         if (result?.ok) {
           persist({ ...state, redeemedCode: cleaned });
+          track("referral_redeemed", { code: cleaned, mode: "server" });
           const status = await api<ServerReferralStatus>("/v1/referrals/status");
           if (status) setServer(status);
           return "server";
@@ -133,7 +173,8 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
 
       // Offline handshake fallback.
       const token = mintClaimToken(cleaned, userId);
-      persist({ ...state, redeemedCode: cleaned });
+      persist({ ...state, redeemedCode: cleaned, thanksToken: token });
+      track("referral_redeemed", { code: cleaned, mode: "offline" });
       return token;
     },
     [inviteCode, server?.inviteCode, userId, state, persist]
@@ -152,6 +193,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
         proUntil = d.getTime();
       }
       persist({ ...state, claimedNonces, proUntil });
+      track("referral_credited", { count: claimedNonces.length });
       return "ok";
     },
     [inviteCode, state, persist]
@@ -187,6 +229,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
       redeemInviteCode,
       redeemedCode: redeemed,
       claimReferral,
+      thanksToken: state.thanksToken,
     }),
     [
       server?.inviteCode,
@@ -194,6 +237,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
       referredCount,
       redeemed,
       state.proUntil,
+      state.thanksToken,
       hasReferralPro,
       redeemInviteCode,
       claimReferral,

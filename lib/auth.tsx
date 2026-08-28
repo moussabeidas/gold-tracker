@@ -13,6 +13,7 @@ import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { loginWithApple, setSessionToken, deleteBackendAccount } from "@/lib/api";
+import { identifyUser, resetAnalyticsUser } from "@/lib/analytics";
 
 const USER_KEY = "auth_user_v2";
 
@@ -131,6 +132,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         await writeStoredUser(next);
         setUser(next);
+        identifyUser(next.id, {
+          first_name: next.firstName ?? "",
+          signed_in_with: "apple",
+        });
         // Establish a backend session too (fire-and-forget; the app is
         // fully functional without the server).
         if (credential.identityToken) {
@@ -164,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await writeStoredUser(null);
     await setSessionToken(null).catch(() => {});
+    resetAnalyticsUser();
     setUser(null);
   }, []);
 
