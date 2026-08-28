@@ -15,6 +15,7 @@ import { FocusReveal } from "@/components/FocusReveal";
 
 import Colors from "@/constants/colors";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useAdaptiveTopPad } from "@/lib/layout";
 import { useGoldData, TimeRange } from "@/hooks/useGoldData";
 import { GoldChart } from "@/components/GoldChart";
 import { PriceHeader } from "@/components/PriceHeader";
@@ -88,10 +89,7 @@ export default function GoldScreen() {
     setRefreshing(false);
   }, [refresh]);
 
-  const topPad =
-    Platform.OS === "web"
-      ? insets.top + 67
-      : insets.top + 8;
+  const { topPad, onLayout } = useAdaptiveTopPad(8);
 
   const statsRow1 = [
     {
@@ -137,6 +135,7 @@ export default function GoldScreen() {
 
   return (
     <ScrollView
+      onLayout={onLayout}
       contentInsetAdjustmentBehavior="never"
       style={styles.scroll}
       contentContainerStyle={[
