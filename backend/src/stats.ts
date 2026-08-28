@@ -76,6 +76,23 @@ export function computeStats() {
     )
     .all(now - 30 * DAY) as { notification_type: string | null; n: number }[];
 
+  // Aggregate portfolio held across the user base — each user's latest
+  // portfolio_snapshot event carries {holdings, grams, invested_usd}.
+  const portfolio = db
+    .prepare(
+      `SELECT COUNT(*) AS holders,
+              COALESCE(SUM(CAST(json_extract(props, '$.grams') AS REAL)), 0) AS grams,
+              COALESCE(SUM(CAST(json_extract(props, '$.invested_usd') AS REAL)), 0) AS invested
+       FROM events e
+       WHERE name = 'portfolio_snapshot' AND user_id IS NOT NULL
+         AND CAST(json_extract(props, '$.holdings') AS INTEGER) > 0
+         AND created_at = (
+           SELECT MAX(created_at) FROM events e2
+           WHERE e2.user_id = e.user_id AND e2.name = 'portfolio_snapshot'
+         )`
+    )
+    .get() as { holders: number; grams: number; invested: number };
+
   const k30 =
     totals.users > 0
       ? Math.round((totals.referrals / Math.max(active.mau, 1)) * 100) / 100
@@ -90,6 +107,11 @@ export function computeStats() {
     topEvents,
     topReferrers,
     subEvents,
+    portfolio: {
+      holders: portfolio.holders,
+      grams: Math.round(portfolio.grams * 100) / 100,
+      investedUsd: Math.round(portfolio.invested * 100) / 100,
+    },
     kFactorProxy: k30,
   };
 }

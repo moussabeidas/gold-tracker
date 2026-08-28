@@ -16,6 +16,20 @@
 // verification can replace `verifyClaimToken` wholesale later.
 
 export const APP_STORE_URL = "https://apps.apple.com/app/id6787368502";
+// Invite landing page (GitHub Pages). Opens the app when installed via the
+// goldtracker:// scheme, otherwise routes to the App Store.
+export const INVITE_PAGE_URL =
+  "https://moussabeidas.github.io/gold-tracker/i.html";
+
+/** One-tap invite link carrying the referrer's code. */
+export function inviteLink(code: string): string {
+  return `${INVITE_PAGE_URL}?c=${encodeURIComponent(code)}`;
+}
+
+/** One-tap thanks link carrying the invitee's claim token (offline path). */
+export function thanksLink(token: string): string {
+  return `${INVITE_PAGE_URL}?t=${encodeURIComponent(token)}`;
+}
 export const REFERRAL_TARGET = 10;
 export const PRO_REWARD_MONTHS = 6;
 
@@ -90,7 +104,14 @@ export function verifyClaimToken(myInviteCode: string, raw: string): string | nu
 export function shareMessage(inviteCode: string): string {
   return (
     `I track my gold with Gold Pricer — live spot price, portfolio gains, ` +
-    `widgets, the lot. Use my invite code ${inviteCode} after you add your ` +
-    `first piece and we both get an extra portfolio slot. ${APP_STORE_URL}`
+    `widgets, the lot. Tap my invite link and we both get an extra ` +
+    `portfolio slot: ${inviteLink(inviteCode)}`
+  );
+}
+
+export function thanksMessage(token: string): string {
+  return (
+    `Joined Gold Pricer with your invite — tap this to collect your ` +
+    `referral credit: ${thanksLink(token)}`
   );
 }

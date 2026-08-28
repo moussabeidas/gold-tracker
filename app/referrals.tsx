@@ -20,7 +20,7 @@ import Colors from "@/constants/colors";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { useReferral } from "@/context/ReferralContext";
 import { usePortfolio } from "@/context/PortfolioContext";
-import { shareMessage, REFERRAL_TARGET } from "@/lib/referral";
+import { shareMessage, thanksMessage, REFERRAL_TARGET } from "@/lib/referral";
 import { track } from "@/lib/analytics";
 
 export default function ReferralsScreen() {
@@ -33,6 +33,7 @@ export default function ReferralsScreen() {
     claimReferral,
     redeemInviteCode,
     redeemedCode,
+    thanksToken,
   } = useReferral();
   const { purchases } = usePortfolio();
 
@@ -42,9 +43,17 @@ export default function ReferralsScreen() {
 
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    track("referral_share");
+    track("referral_share", { code: inviteCode });
     try {
       await Share.share({ message: shareMessage(inviteCode) });
+    } catch {}
+  };
+
+  const handleSendThanks = async () => {
+    if (!thanksToken) return;
+    Haptics.selectionAsync();
+    try {
+      await Share.share({ message: thanksMessage(thanksToken) });
     } catch {}
   };
 
@@ -159,6 +168,21 @@ export default function ReferralsScreen() {
             <Text style={styles.shareText}>Share your invite</Text>
           </AnimatedPressable>
         </LinearGradient>
+
+        {thanksToken ? (
+          <AnimatedPressable
+            scaleDown={0.98}
+            style={styles.thanksBanner}
+            onPress={handleSendThanks}
+          >
+            <Feather name="send" size={15} color={Colors.dark.gold} />
+            <Text style={styles.thanksText}>
+              You joined with a friend's invite — tap to send them their
+              referral credit.
+            </Text>
+            <Feather name="chevron-right" size={15} color={Colors.dark.textTertiary} />
+          </AnimatedPressable>
+        ) : null}
 
         <View style={styles.card}>
           <View style={styles.progressHeader}>
@@ -327,6 +351,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.dark.border,
+  },
+  thanksBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: Colors.dark.goldFaint,
+    borderRadius: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
+  },
+  thanksText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: "Inter_500Medium",
+    color: Colors.dark.text,
   },
   shareButton: {
     flexDirection: "row",

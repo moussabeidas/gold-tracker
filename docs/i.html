@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gold Pricer — Invite</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(600px 420px at 50% -5%, #1c160a 0%, #0a0a0c 60%, #060608 100%);
+    color: #fff; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; text-align: center;
+  }
+  main { max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .coin {
+    width: 84px; height: 84px; border-radius: 22px;
+    background: radial-gradient(circle at 35% 30%, #ffe27a, #d4a017 60%, #8a6508);
+    box-shadow: 0 10px 44px rgba(255,200,40,.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px;
+  }
+  h1 { font-size: 26px; letter-spacing: -0.5px; }
+  p { font-size: 15.5px; line-height: 1.55; color: rgba(255,255,255,0.65); }
+  .btn {
+    display: block; width: 100%; text-decoration: none;
+    background: linear-gradient(180deg, #f4cf4a, #d9ac13);
+    color: #221900; font-size: 17px; font-weight: 700;
+    padding: 15px 18px; border-radius: 14px; margin-top: 6px;
+    box-shadow: 0 8px 28px rgba(232,180,9,.28);
+  }
+  .btn.secondary {
+    background: rgba(255,255,255,0.08); color: #f4cf4a;
+    box-shadow: none; border: 1px solid rgba(255,215,0,0.25);
+  }
+  .fine { font-size: 12.5px; color: rgba(255,255,255,0.4); margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="coin">🪙</div>
+  <h1 id="title">You're invited to Gold Pricer</h1>
+  <p id="subtitle">
+    Track live gold prices and what your own gold is really worth.
+    Join with this invite and you both get an extra portfolio slot.
+  </p>
+  <a class="btn" id="open">Open in the app</a>
+  <a class="btn secondary" id="store"
+     href="https://apps.apple.com/app/id6787368502">Get it on the App Store</a>
+  <p class="fine" id="hint">
+    Just installed it? Come back here and tap “Open in the app”.
+  </p>
+</main>
+<script>
+  // Forward the invite (?c=CODE) or thanks (?t=TOKEN) payload into the app
+  // via its URL scheme. If the app isn't installed the scheme silently
+  // fails and the visitor uses the App Store button instead.
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var code = (q.get("c") || "").replace(/[^A-Za-z0-9-]/g, "");
+    var token = (q.get("t") || "").replace(/[^A-Za-z0-9-]/g, "");
+    var target = "goldtracker://invite";
+    if (token) {
+      target += "?t=" + encodeURIComponent(token);
+      document.getElementById("title").textContent = "Collect your referral credit";
+      document.getElementById("subtitle").textContent =
+        "Your friend joined with your invite. Open the app to count it toward your Pro reward.";
+    } else if (code) {
+      target += "?c=" + encodeURIComponent(code);
+    }
+    var open = document.getElementById("open");
+    open.setAttribute("href", target);
+    // Auto-attempt once on load — succeeds instantly when installed.
+    setTimeout(function () { location.href = target; }, 350);
+  })();
+</script>
+</body>
+</html>

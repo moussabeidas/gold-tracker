@@ -150,7 +150,10 @@ async function render() {
     kpi("WAU", s.active.wau.toLocaleString(), "active last 7d") +
     kpi("MAU", s.active.mau.toLocaleString(), "active last 30d") +
     kpi("Verified referrals", s.totals.referrals.toLocaleString(), "K-proxy " + s.kFactorProxy) +
-    kpi("Events stored", s.totals.events.toLocaleString());
+    kpi("Events stored", s.totals.events.toLocaleString()) +
+    kpi("Gold holders", s.portfolio.holders.toLocaleString()) +
+    kpi("Gold held", s.portfolio.grams.toLocaleString() + " g") +
+    kpi("Invested (cost basis)", "$" + Math.round(s.portfolio.investedUsd).toLocaleString());
 
   const days = s.signupsByDay;
   const max = Math.max(1, ...days.map(d => d.n));
