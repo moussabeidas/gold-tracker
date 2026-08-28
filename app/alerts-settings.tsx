@@ -22,6 +22,7 @@ import {
   saveAlertPrefs,
   requestAlertPermission,
   DEFAULT_PREFS,
+  BIG_MOVE_PCT,
   type AlertPrefs,
 } from "@/lib/alerts";
 
@@ -79,6 +80,21 @@ export default function AlertsSettingsScreen() {
       }
     }
     update({ dailyBrief: value });
+  };
+
+  const toggleBigMoves = async (value: boolean) => {
+    Haptics.selectionAsync();
+    if (value) {
+      const ok = await requestAlertPermission();
+      if (!ok) {
+        Alert.alert(
+          "Notifications Off",
+          "Enable notifications for Gold Pricer in Settings to receive market move alerts."
+        );
+        return;
+      }
+    }
+    update({ bigMoves: value });
   };
 
   const commitTarget = (which: "above" | "below", text: string) => {
@@ -173,7 +189,7 @@ export default function AlertsSettingsScreen() {
         )}
 
         <View style={styles.card}>
-          <View style={styles.row}>
+          <View style={[styles.row, styles.rowBordered]}>
             <View style={styles.rowIcon}>
               <Feather name="sunrise" size={16} color={Colors.dark.gold} />
             </View>
@@ -184,6 +200,24 @@ export default function AlertsSettingsScreen() {
             <Switch
               value={prefs.dailyBrief}
               onValueChange={toggleDaily}
+              trackColor={{ true: Colors.dark.gold, false: Colors.dark.surface }}
+              thumbColor="#fff"
+              disabled={!loaded}
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Feather name="trending-up" size={16} color={Colors.dark.gold} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>Market move alerts</Text>
+              <Text style={styles.rowHint}>
+                Big rallies or drops (±{BIG_MOVE_PCT}%+), with the day's headline
+              </Text>
+            </View>
+            <Switch
+              value={prefs.bigMoves}
+              onValueChange={toggleBigMoves}
               trackColor={{ true: Colors.dark.gold, false: Colors.dark.surface }}
               thumbColor="#fff"
               disabled={!loaded}

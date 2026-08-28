@@ -34,6 +34,8 @@ export interface AlertPrefs {
   below: number;
   /** 9am daily brief with a nudge to check the market. */
   dailyBrief: boolean;
+  /** Notify on sharp daily moves (rallies or drops of BIG_MOVE_PCT+). */
+  bigMoves: boolean;
 }
 
 export const DEFAULT_PREFS: AlertPrefs = {
@@ -41,7 +43,15 @@ export const DEFAULT_PREFS: AlertPrefs = {
   above: 0,
   below: 0,
   dailyBrief: false,
+  bigMoves: false,
 };
+
+/** Daily move (vs previous close) that counts as "big", in percent. */
+export const BIG_MOVE_PCT = 1.5;
+/** Re-notify the same day only when the move extends by this much more. */
+const BIG_MOVE_STEP_PCT = 1.0;
+const BIG_MOVE_STATE_KEY = "@gold_bigmove_state_v1";
+const BIG_MOVE_CHECK_KEY = "@gold_bigmove_checked_v1";
 
 export async function loadAlertPrefs(): Promise<AlertPrefs> {
   try {
@@ -70,8 +80,10 @@ export async function requestAlertPermission(): Promise<boolean> {
 /** Compare the spot price against targets; notify once per arming. */
 export async function checkPriceAgainstTargets(price: number): Promise<void> {
   // Piggyback on foreground price checks to keep tomorrow's brief fresh
-  // (no-op unless the brief is enabled; throttled internally).
+  // and watch for outsized daily moves (each no-ops unless enabled, and
+  // throttles itself).
   refreshDailyBrief().catch(() => {});
+  checkBigMove().catch(() => {});
 
   const prefs = await loadAlertPrefs();
   if (!prefs.enabled) return;
@@ -103,6 +115,81 @@ export async function checkPriceAgainstTargets(price: number): Promise<void> {
     );
   }
   await AsyncStorage.setItem(FIRED_KEY, JSON.stringify(fired)).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
+// Big-move alerts
+// ---------------------------------------------------------------------------
+
+/**
+ * Notify when gold makes an outsized daily move, with the top headline for
+ * context. Fires at most once per direction per day, plus follow-ups only
+ * when the move extends by another BIG_MOVE_STEP_PCT. Throttled to one
+ * quote check per 30 minutes across foreground and background callers.
+ */
+export async function checkBigMove(force = false): Promise<void> {
+  if (Platform.OS === "web") return;
+  const prefs = await loadAlertPrefs();
+  if (!prefs.bigMoves) return;
+
+  if (!force) {
+    try {
+      const last = Number(await AsyncStorage.getItem(BIG_MOVE_CHECK_KEY));
+      if (isFinite(last) && Date.now() - last < 30 * 60 * 1000) return;
+    } catch {}
+  }
+  await AsyncStorage.setItem(BIG_MOVE_CHECK_KEY, String(Date.now())).catch(
+    () => {}
+  );
+
+  const quote = await fetchQuote("XAUUSD=X", 500, 20000).then(
+    (q) => q ?? fetchQuote("GC=F", 500, 20000)
+  );
+  if (!quote) return;
+  const pct = quote.changePct;
+  if (Math.abs(pct) < BIG_MOVE_PCT) return;
+
+  // One notification per day/direction; escalate only on a clearly bigger move.
+  const today = new Date().toISOString().slice(0, 10);
+  let state: { date?: string; dir?: string; pct?: number } = {};
+  try {
+    state = JSON.parse(
+      (await AsyncStorage.getItem(BIG_MOVE_STATE_KEY)) ?? "{}"
+    );
+  } catch {}
+  const dir = pct >= 0 ? "up" : "down";
+  if (
+    state.date === today &&
+    state.dir === dir &&
+    Math.abs(pct) < (state.pct ?? 0) + BIG_MOVE_STEP_PCT
+  ) {
+    return;
+  }
+
+  const [stories, cur] = await Promise.all([
+    fetchNews("gold price market", 3).catch(() => null),
+    loadCurrencyState(),
+  ]);
+  const price = formatInCurrency(quote.price, cur, { decimals: 2 });
+  const rallied = pct >= 0;
+  const title = rallied
+    ? `Gold rallies ${pct.toFixed(1)}% 📈`
+    : `Gold drops ${Math.abs(pct).toFixed(1)}% 📉`;
+  let body = `Spot gold is at ${price}/oz, ${rallied ? "up" : "down"} ${Math.abs(pct).toFixed(1)}% on the day.`;
+  const headline = stories?.[0]?.title?.trim();
+  if (headline) {
+    const publisher = stories?.[0]?.publisher?.trim();
+    body += ` ${headline}${publisher ? ` — ${publisher}` : ""}`;
+  }
+
+  await Notifications.scheduleNotificationAsync({
+    content: { title, body, sound: "default", data: { kind: "big-move" } },
+    trigger: null,
+  }).catch(() => {});
+  await AsyncStorage.setItem(
+    BIG_MOVE_STATE_KEY,
+    JSON.stringify({ date: today, dir, pct: Math.abs(pct) })
+  ).catch(() => {});
 }
 
 // ---------------------------------------------------------------------------
@@ -240,8 +327,10 @@ TaskManager.defineTask(TASK_NAME, async () => {
         }
       }
     }
-    // Keep tomorrow's brief current even when the app isn't opened.
+    // Keep tomorrow's brief current even when the app isn't opened, and
+    // watch for outsized daily moves.
     await refreshDailyBrief();
+    await checkBigMove();
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
     return BackgroundTask.BackgroundTaskResult.Failed;
@@ -256,7 +345,8 @@ async function syncSchedules(prefs: AlertPrefs): Promise<void> {
     const registered = await TaskManager.isTaskRegisteredAsync(TASK_NAME);
     const wantsTask =
       (prefs.enabled && (prefs.above > 0 || prefs.below > 0)) ||
-      prefs.dailyBrief;
+      prefs.dailyBrief ||
+      prefs.bigMoves;
     if (wantsTask) {
       if (!registered) {
         await BackgroundTask.registerTaskAsync(TASK_NAME, {
