@@ -93,6 +93,78 @@ export function computeStats() {
     )
     .get() as { holders: number; grams: number; invested: number };
 
+  // Daily history for the last 30 days (UTC days, zero-filled).
+  const dayKeys: string[] = [];
+  for (let i = 29; i >= 0; i--) {
+    dayKeys.push(new Date(now - i * DAY).toISOString().slice(0, 10));
+  }
+  const byDay = (rows: { day: string; n: number }[]) => {
+    const map = new Map(rows.map((r) => [r.day, r.n]));
+    return dayKeys.map((day) => ({ day, n: map.get(day) ?? 0 }));
+  };
+
+  const dauByDay = byDay(
+    db
+      .prepare(
+        `SELECT date(created_at / 1000, 'unixepoch') AS day,
+                COUNT(DISTINCT user_id) AS n
+         FROM events WHERE created_at > ? AND user_id IS NOT NULL
+         GROUP BY day`
+      )
+      .all(now - 30 * DAY) as { day: string; n: number }[]
+  );
+  const eventsByDay = byDay(
+    db
+      .prepare(
+        `SELECT date(created_at / 1000, 'unixepoch') AS day, COUNT(*) AS n
+         FROM events WHERE created_at > ? GROUP BY day`
+      )
+      .all(now - 30 * DAY) as { day: string; n: number }[]
+  );
+
+  // Gold held over time: walk the snapshot log once, keeping each user's
+  // latest snapshot as of each day's end. Snapshots are deduped app-side,
+  // so this stays tiny even with lots of users.
+  const snaps = db
+    .prepare(
+      `SELECT user_id,
+              created_at,
+              CAST(json_extract(props, '$.grams') AS REAL) AS grams,
+              CAST(json_extract(props, '$.invested_usd') AS REAL) AS invested
+       FROM events
+       WHERE name = 'portfolio_snapshot' AND user_id IS NOT NULL
+       ORDER BY created_at`
+    )
+    .all() as {
+    user_id: string;
+    created_at: number;
+    grams: number | null;
+    invested: number | null;
+  }[];
+  const latestByUser = new Map<string, { grams: number; invested: number }>();
+  let snapIdx = 0;
+  const goldByDay = dayKeys.map((day) => {
+    const cutoff = Date.parse(`${day}T23:59:59.999Z`);
+    while (snapIdx < snaps.length && snaps[snapIdx].created_at <= cutoff) {
+      const s = snaps[snapIdx++];
+      latestByUser.set(s.user_id, {
+        grams: s.grams ?? 0,
+        invested: s.invested ?? 0,
+      });
+    }
+    let grams = 0;
+    let invested = 0;
+    latestByUser.forEach((v) => {
+      grams += v.grams;
+      invested += v.invested;
+    });
+    return {
+      day,
+      grams: Math.round(grams * 100) / 100,
+      investedUsd: Math.round(invested * 100) / 100,
+    };
+  });
+
   const k30 =
     totals.users > 0
       ? Math.round((totals.referrals / Math.max(active.mau, 1)) * 100) / 100
@@ -112,6 +184,7 @@ export function computeStats() {
       grams: Math.round(portfolio.grams * 100) / 100,
       investedUsd: Math.round(portfolio.invested * 100) / 100,
     },
+    history: { dauByDay, eventsByDay, goldByDay },
     kFactorProxy: k30,
   };
 }

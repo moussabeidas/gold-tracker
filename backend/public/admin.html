@@ -73,6 +73,17 @@
   </div>
 
   <div class="row2" style="margin-top:14px">
+    <div class="card">
+      <h3>Active users — last 30 days</h3>
+      <div class="bars" id="dau"></div>
+    </div>
+    <div class="card">
+      <h3>Gold held (g) — last 30 days</h3>
+      <div class="bars" id="gold"></div>
+    </div>
+  </div>
+
+  <div class="row2" style="margin-top:14px">
     <div class="card funnel">
       <h3>Activation funnel — 30 days (unique users)</h3>
       <div id="funnel"></div>
@@ -160,6 +171,18 @@ async function render() {
   document.getElementById("signups").innerHTML = days.length
     ? days.map(d => `<div class="bar" style="height:${(d.n / max) * 100}%" title="${d.day}: ${d.n}"></div>`).join("")
     : '<span style="color:var(--muted)">No signups yet.</span>';
+
+  const hist = s.history ?? { dauByDay: [], eventsByDay: [], goldByDay: [] };
+  const barChart = (id, rows, val, label) => {
+    const max = Math.max(1, ...rows.map(val));
+    const any = rows.some((r) => val(r) > 0);
+    document.getElementById(id).innerHTML = any
+      ? rows.map((r) => `<div class="bar" style="height:${(val(r) / max) * 100}%" title="${r.day}: ${label(r)}"></div>`).join("")
+      : '<span style="color:var(--muted)">No data yet.</span>';
+  };
+  barChart("dau", hist.dauByDay, (r) => r.n, (r) => r.n + " active");
+  barChart("gold", hist.goldByDay, (r) => r.grams,
+    (r) => r.grams.toLocaleString() + " g · $" + Math.round(r.investedUsd).toLocaleString());
 
   const f = s.funnel;
   const fmax = Math.max(1, f.appOpen);
