@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { SymbolView, type SFSymbol } from "expo-symbols";
 import Colors from "@/constants/colors";
-import { useAdaptiveTopPad } from "@/lib/layout";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useGoldPrice, useSpotPrice, TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
 import * as Haptics from "expo-haptics";
@@ -180,21 +179,19 @@ function PurityRows({ dayOpen }: { dayOpen: number }) {
 export default function WatchlistScreen() {
   const insets = useSafeAreaInsets();
   const { dayOpen } = useGoldPrice();
-  const { topPad, onLayout } = useAdaptiveTopPad(16);
 
   return (
     <ScrollView
-      onLayout={onLayout}
-      contentInsetAdjustmentBehavior="never"
+      contentInsetAdjustmentBehavior="automatic"
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: topPad,
+          paddingTop: Platform.OS === "web" ? insets.top + 67 : 16,
           paddingBottom:
             Platform.OS === "web"
               ? insets.bottom + 34 + 84
-              : insets.bottom + 108,
+              : 24,
         },
       ]}
       showsVerticalScrollIndicator={false}
