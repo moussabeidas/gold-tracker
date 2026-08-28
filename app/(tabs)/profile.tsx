@@ -16,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { FocusReveal } from "@/components/FocusReveal";
 import Colors from "@/constants/colors";
+import { useAdaptiveTopPad } from "@/lib/layout";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/context/CurrencyContext";
 import { usePortfolio } from "@/context/PortfolioContext";
@@ -83,6 +84,7 @@ export default function ProfileScreen() {
   const { purchases, totalWeightGrams, totalInvested } = usePortfolio();
   const { isPro, subscription, revertToFree } = useSubscription();
   const { referredCount, hasReferralPro } = useReferral();
+  const { topPad, onLayout } = useAdaptiveTopPad(16);
 
   const planLabel = hasReferralPro
     ? "Pro · Referral"
@@ -127,9 +129,6 @@ export default function ProfileScreen() {
   if (!isAuthenticated || !user) {
     return <LoginScreen />;
   }
-
-  const topPad =
-    Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
 
   const displayName =
     user.firstName && user.lastName
@@ -186,6 +185,7 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
+      onLayout={onLayout}
       contentInsetAdjustmentBehavior="never"
       style={styles.scroll}
       contentContainerStyle={[
