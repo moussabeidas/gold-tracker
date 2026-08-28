@@ -21,7 +21,6 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import Colors from "@/constants/colors";
-import { useAdaptiveTopPad } from "@/lib/layout";
 import { useGoldPrice, TROY_OUNCE_GRAMS } from "@/context/GoldPriceContext";
 import { usePortfolio, GoldPurchase } from "@/context/PortfolioContext";
 import { useSubscription } from "@/context/SubscriptionContext";
@@ -159,7 +158,6 @@ export default function PortfolioScreen() {
   const totalOz = (totalWeightGrams / TROY_OUNCE_GRAMS).toFixed(4);
   const { currency, convert, fmt } = useCurrency();
 
-  const { topPad, onLayout } = useAdaptiveTopPad(16);
 
   const handleAdd = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -172,17 +170,16 @@ export default function PortfolioScreen() {
 
   return (
     <ScrollView
-      onLayout={onLayout}
-      contentInsetAdjustmentBehavior="never"
+      contentInsetAdjustmentBehavior="automatic"
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: topPad,
+          paddingTop: Platform.OS === "web" ? insets.top + 67 : 16,
           paddingBottom:
             Platform.OS === "web"
               ? insets.bottom + 34 + 84
-              : insets.bottom + 100,
+              : 24,
         },
       ]}
       showsVerticalScrollIndicator={false}

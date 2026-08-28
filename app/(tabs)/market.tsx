@@ -24,7 +24,6 @@ import Animated, {
 } from "react-native-reanimated";
 
 import Colors from "@/constants/colors";
-import { useAdaptiveTopPad } from "@/lib/layout";
 import { useGoldPrice } from "@/context/GoldPriceContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
@@ -139,21 +138,19 @@ export default function MarketScreen() {
     await AsyncStorage.setItem(NOTIFY_KEY, "1");
   };
 
-  const { topPad, onLayout } = useAdaptiveTopPad(16);
 
   return (
     <ScrollView
-      onLayout={onLayout}
-      contentInsetAdjustmentBehavior="never"
+      contentInsetAdjustmentBehavior="automatic"
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: topPad,
+          paddingTop: Platform.OS === "web" ? insets.top + 67 : 16,
           paddingBottom:
             Platform.OS === "web"
               ? insets.bottom + 34 + 84
-              : insets.bottom + 100,
+              : 24,
         },
       ]}
       showsVerticalScrollIndicator={false}

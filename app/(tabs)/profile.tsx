@@ -16,7 +16,6 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { FocusReveal } from "@/components/FocusReveal";
 import Colors from "@/constants/colors";
-import { useAdaptiveTopPad } from "@/lib/layout";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/context/CurrencyContext";
 import { usePortfolio } from "@/context/PortfolioContext";
@@ -84,7 +83,6 @@ export default function ProfileScreen() {
   const { purchases, totalWeightGrams, totalInvested } = usePortfolio();
   const { isPro, subscription, revertToFree } = useSubscription();
   const { referredCount, hasReferralPro } = useReferral();
-  const { topPad, onLayout } = useAdaptiveTopPad(16);
 
   const planLabel = hasReferralPro
     ? "Pro · Referral"
@@ -185,19 +183,16 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
-      onLayout={onLayout}
-      contentInsetAdjustmentBehavior="never"
+      contentInsetAdjustmentBehavior="automatic"
       style={styles.scroll}
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: topPad,
-          // Native tab bar floats over content on iOS — pad well past it so
-          // the last row (Delete Account) can scroll fully into view.
+          paddingTop: Platform.OS === "web" ? insets.top + 67 : 16,
           paddingBottom:
             Platform.OS === "web"
               ? insets.bottom + 34 + 84
-              : insets.bottom + 108,
+              : 24,
         },
       ]}
       showsVerticalScrollIndicator={false}
