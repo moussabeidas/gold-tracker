@@ -138,6 +138,46 @@ async function fromGoogleRss(query: string, count: number): Promise<NewsStory[]>
   return stories;
 }
 
+/**
+ * Google News RSS links point at a redirect page. Many ids base64-encode
+ * the real article URL — decode it when possible so stories open directly
+ * on the publisher's site and can be enriched with the article's og:image.
+ */
+function resolveGoogleLink(link: string): string {
+  try {
+    const m = link.match(/news\.google\.com\/rss\/articles\/([^?/]+)/);
+    if (!m) return link;
+    const b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = Buffer.from(b64, "base64").toString("latin1");
+    const urls = decoded.match(/https?:\/\/[\x21-\x7e]+/g) ?? [];
+    const real = urls.find((u) => !/news\.google\.com|google\.com/.test(u));
+    return real ?? link;
+  } catch {
+    return link;
+  }
+}
+
+/** The article page's own preview image (og:image / twitter:image). */
+async function fetchOgImage(url: string): Promise<string | null> {
+  const res = await fetchWithTimeout(url, 6000);
+  if (!res) return null;
+  try {
+    const html = (await res.text()).slice(0, 300_000);
+    const meta =
+      html.match(
+        /<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)(?::src)?["'][^>]+content=["']([^"']+)["']/i
+      ) ??
+      html.match(
+        /<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)(?::src)?["']/i
+      );
+    const src = meta?.[1];
+    if (!src || !/^https?:\/\//.test(src)) return null;
+    return src.replace(/&amp;/g, "&");
+  } catch {
+    return null;
+  }
+}
+
 /** Merged, deduped, filtered, freshest-first gold-market stories. */
 export async function getCuratedNews(): Promise<NewsStory[]> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.articles;
@@ -165,6 +205,18 @@ export async function getCuratedNews(): Promise<NewsStory[]> {
     .filter((s) => isOnTopic(s.title))
     .sort((a, b) => b.publishedAt - a.publishedAt)
     .slice(0, 8);
+
+  // RSS entries lack images and hide behind Google's redirect: resolve the
+  // real article URL and lift its og:image so previews render in the app.
+  await Promise.all(
+    articles.map(async (story) => {
+      const direct = resolveGoogleLink(story.url);
+      if (direct !== story.url) story.url = direct;
+      if (!story.thumbnailUrl && !/news\.google\.com/.test(story.url)) {
+        story.thumbnailUrl = await fetchOgImage(story.url);
+      }
+    })
+  );
 
   // Cache even empty results briefly so a broken upstream doesn't get
   // hammered; the shorter TTL retries sooner.
