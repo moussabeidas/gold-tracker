@@ -22,6 +22,11 @@ const SEARCH_BASES = [
   "https://query2.finance.yahoo.com/v1/finance/search",
 ];
 
+// Yahoo endpoints often refuse bare app user agents; present as Safari.
+const BROWSER_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
+  "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+
 export interface NewsStory {
   id: string;
   title: string;
@@ -149,6 +154,69 @@ async function fetchPriceOnDateFor(
   }
 }
 
+function decodeXml(text: string): string {
+  return text
+    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .trim();
+}
+
+/**
+ * Google News RSS fallback: every entry links to its actual article (via a
+ * Google redirect). No thumbnails in the feed — callers render an icon.
+ */
+async function fetchNewsRss(query: string, count: number): Promise<NewsStory[] | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const url =
+      `https://news.google.com/rss/search?q=${encodeURIComponent(query)}` +
+      `&hl=en-US&gl=US&ceid=US:en`;
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": BROWSER_UA },
+    });
+    if (!res.ok) return null;
+    const xml = await res.text();
+    const stories: NewsStory[] = [];
+    const itemRe = /<item>([\s\S]*?)<\/item>/g;
+    let m: RegExpExecArray | null;
+    while ((m = itemRe.exec(xml)) && stories.length < count) {
+      const block = m[1];
+      const tag = (name: string) => {
+        const t = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`));
+        return t ? decodeXml(t[1]) : "";
+      };
+      const link = tag("link");
+      let title = tag("title");
+      const publisher = tag("source") || "News";
+      // RSS titles end with " - Publisher"; trim the duplication.
+      if (publisher && title.endsWith(` - ${publisher}`)) {
+        title = title.slice(0, -(publisher.length + 3));
+      }
+      if (!title || !link.startsWith("http")) continue;
+      const pub = Date.parse(tag("pubDate"));
+      stories.push({
+        id: link,
+        title,
+        publisher,
+        url: link,
+        publishedAt: isFinite(pub) ? pub : Date.now(),
+        thumbnailUrl: null,
+      });
+    }
+    return stories.length ? stories : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function fetchNews(
   query: string,
   count = 8
@@ -157,6 +225,8 @@ export async function fetchNews(
     const stories = await fetchNewsFrom(base, query, count);
     if (stories) return stories;
   }
+  const rss = await fetchNewsRss(query, count);
+  if (rss) return rss;
   return null;
 }
 
@@ -171,7 +241,7 @@ async function fetchNewsFrom(
     const url = `${base}?q=${encodeURIComponent(query)}&newsCount=${count}&quotesCount=0`;
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", "User-Agent": BROWSER_UA },
     });
     if (!res.ok) return null;
     const json = await res.json();
