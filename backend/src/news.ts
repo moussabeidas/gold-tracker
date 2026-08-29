@@ -139,6 +139,51 @@ async function fromGoogleRss(query: string, count: number): Promise<NewsStory[]>
 }
 
 /**
+ * Bing News RSS: direct publisher links (via a decodable click-through
+ * param) and an in-feed thumbnail for most stories.
+ */
+async function fromBing(query: string, count: number): Promise<NewsStory[]> {
+  const res = await fetchWithTimeout(
+    `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=RSS&mkt=en-US`
+  );
+  if (!res) return [];
+  const xml = await res.text();
+  const stories: NewsStory[] = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/g;
+  let m: RegExpExecArray | null;
+  while ((m = itemRe.exec(xml)) && stories.length < count) {
+    const block = m[1];
+    const tag = (name: string) => {
+      const t = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`));
+      return t ? decodeXml(t[1]) : "";
+    };
+    let link = tag("link");
+    // Bing wraps links: .../apiclick.aspx?...&url=https%3A%2F%2Freal...
+    const wrapped = link.match(/[?&]url=([^&]+)/);
+    if (wrapped) {
+      try {
+        const direct = decodeURIComponent(wrapped[1]);
+        if (/^https?:\/\//.test(direct)) link = direct;
+      } catch {}
+    }
+    let title = tag("title");
+    const publisher = tag("News:Source") || tag("source") || "News";
+    const image = tag("News:Image");
+    if (!title || !link.startsWith("http")) continue;
+    const pub = Date.parse(tag("pubDate"));
+    stories.push({
+      id: link,
+      title,
+      publisher,
+      url: link,
+      publishedAt: isFinite(pub) ? pub : Date.now(),
+      thumbnailUrl: /^https?:\/\//.test(image) ? image : null,
+    });
+  }
+  return stories;
+}
+
+/**
  * Google News RSS links point at a redirect page. Many ids base64-encode
  * the real article URL — decode it when possible so stories open directly
  * on the publisher's site and can be enriched with the article's og:image.
@@ -186,6 +231,8 @@ export async function getCuratedNews(): Promise<NewsStory[]> {
     QUERIES.map(async (q) => {
       const yahoo = await fromYahoo(q, 10);
       if (yahoo.length) return yahoo;
+      const bing = await fromBing(q, 10);
+      if (bing.length) return bing;
       return fromGoogleRss(q, 10);
     })
   );
