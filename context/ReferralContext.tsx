@@ -54,8 +54,9 @@ interface ReferralContextValue {
   proUntil: number;
   /**
    * As the invitee: redeem a friend's code. Returns "server" when the
-   * backend verified it (friend credited automatically), a claim token
-   * for the offline handshake, or null if invalid.
+   * backend verified it (friend credited automatically), "self" when the
+   * user tapped their own link, a claim token for the offline handshake,
+   * or null if invalid.
    */
   redeemInviteCode: (code: string) => Promise<string | null>;
   redeemedCode: string | null;
@@ -153,7 +154,7 @@ export function ReferralProvider({ children }: { children: ReactNode }) {
       if (!isValidInviteCodeFormat(code)) return null;
       const cleaned = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
       if (cleaned === inviteCode || cleaned === server?.inviteCode) {
-        return null; // no self-referrals
+        return "self"; // no self-referrals — but say so nicely
       }
 
       // Server-verified path: the friend is credited automatically.

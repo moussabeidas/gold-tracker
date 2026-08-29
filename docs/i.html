@@ -72,8 +72,9 @@
     }
     var open = document.getElementById("open");
     open.setAttribute("href", target);
-    // Auto-attempt once on load — succeeds instantly when installed.
-    setTimeout(function () { location.href = target; }, 350);
+    // Bounce into the app immediately — when it's installed the page is
+    // visible for barely a frame; when it isn't, the buttons remain.
+    location.replace(target);
   })();
 </script>
 </body>

@@ -96,6 +96,13 @@ export default function ReferralsScreen() {
       return;
     }
     const token = await redeemInviteCode(redeemText);
+    if (token === "self") {
+      Alert.alert(
+        "That's your own code 😄",
+        "Share it with a friend instead — you'll both get an extra slot."
+      );
+      return;
+    }
     if (token === "server") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setRedeemText("");
