@@ -26,6 +26,7 @@ import {
   requireAdmin,
 } from "./auth.js";
 import { computeStats } from "./stats.js";
+import { getCuratedNews } from "./news.js";
 import { runAgentTurn } from "./agent.js";
 
 const REFERRAL_TARGET = 10;
@@ -103,6 +104,12 @@ app.delete("/v1/me", requireUser, (c) => {
 // ---------------------------------------------------------------------------
 // Referrals — server-verified
 // ---------------------------------------------------------------------------
+
+// Public curated news feed — the app renders this on the home tab.
+app.get("/v1/news", async (c) => {
+  const articles = await getCuratedNews();
+  return c.json({ articles });
+});
 
 app.get("/v1/referrals/status", requireUser, (c) => {
   const userId = c.get("userId");
