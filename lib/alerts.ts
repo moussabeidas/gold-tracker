@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 
+import { track } from "./analytics";
 import { fetchCuratedNews } from "./api";
 import { fetchQuote, fetchNews } from "./marketData";
 import { formatInCurrency, loadCurrencyState } from "./currency";
@@ -53,6 +54,7 @@ export const BIG_MOVE_PCT = 1.5;
 const BIG_MOVE_STEP_PCT = 1.0;
 const BIG_MOVE_STATE_KEY = "@gold_bigmove_state_v1";
 const BIG_MOVE_CHECK_KEY = "@gold_bigmove_checked_v1";
+const NOTIF_REPORTED_KEY = "@gold_notif_reported_v1";
 
 export async function loadAlertPrefs(): Promise<AlertPrefs> {
   try {
@@ -68,6 +70,34 @@ export async function saveAlertPrefs(prefs: AlertPrefs): Promise<void> {
   // Changing targets re-arms them.
   await AsyncStorage.removeItem(FIRED_KEY).catch(() => {});
   await syncSchedules(prefs);
+  reportNotificationSettings().catch(() => {});
+}
+
+/**
+ * Report the user's notification permission and alert toggles to
+ * analytics — deduped, so the dashboard always has each user's latest
+ * state without event spam.
+ */
+export async function reportNotificationSettings(): Promise<void> {
+  if (Platform.OS === "web") return;
+  try {
+    const perm = await Notifications.getPermissionsAsync();
+    const prefs = await loadAlertPrefs();
+    const payload = {
+      permission: perm.granted
+        ? "granted"
+        : perm.canAskAgain === false
+          ? "denied"
+          : "undetermined",
+      price_alerts: prefs.enabled,
+      daily_brief: prefs.dailyBrief,
+      big_moves: prefs.bigMoves,
+    };
+    const key = JSON.stringify(payload);
+    if ((await AsyncStorage.getItem(NOTIF_REPORTED_KEY)) === key) return;
+    await AsyncStorage.setItem(NOTIF_REPORTED_KEY, key);
+    track("notification_settings", payload);
+  } catch {}
 }
 
 export async function requestAlertPermission(): Promise<boolean> {
@@ -391,4 +421,5 @@ export async function initAlerts(): Promise<void> {
   });
   const prefs = await loadAlertPrefs();
   await syncSchedules(prefs);
+  reportNotificationSettings().catch(() => {});
 }

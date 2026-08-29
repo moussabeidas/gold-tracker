@@ -107,7 +107,7 @@
 
   <div class="card wide" style="margin-top:14px">
     <h3>Users <input id="q" placeholder="search email / name / code" style="margin-left:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:#101014;color:var(--text)" onkeydown="if(event.key==='Enter')loadUsers()"/></h3>
-    <table id="users"><thead><tr><th>Name</th><th>Email</th><th>Code</th><th>Plan</th><th>Joined</th><th>Last seen</th></tr></thead><tbody></tbody></table>
+    <table id="users"><thead><tr><th>Name</th><th>Email</th><th>Code</th><th>Plan</th><th>Joined</th><th>Last seen</th><th>Alerts</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card wide" style="margin-top:14px">
@@ -164,7 +164,11 @@ async function render() {
     kpi("Events stored", s.totals.events.toLocaleString()) +
     kpi("Gold holders", s.portfolio.holders.toLocaleString()) +
     kpi("Gold held", s.portfolio.grams.toLocaleString() + " g") +
-    kpi("Invested (cost basis)", "$" + Math.round(s.portfolio.investedUsd).toLocaleString());
+    kpi("Invested (cost basis)", "$" + Math.round(s.portfolio.investedUsd).toLocaleString()) +
+    kpi("Notifications on", (s.notifications?.granted ?? 0).toLocaleString(),
+        "brief " + (s.notifications?.dailyBrief ?? 0) +
+        " · moves " + (s.notifications?.bigMoves ?? 0) +
+        " · targets " + (s.notifications?.priceAlerts ?? 0));
 
   const days = s.signupsByDay;
   const max = Math.max(1, ...days.map(d => d.n));
@@ -212,9 +216,18 @@ async function loadUsers() {
   const q = encodeURIComponent(document.getElementById("q").value.trim());
   const data = await api("/v1/admin/users?q=" + q);
   const fmt = t => new Date(t).toLocaleDateString();
+  const notifCell = (u) => {
+    try {
+      const n = u.notif_props ? JSON.parse(u.notif_props) : null;
+      if (!n) return "—";
+      if (n.permission !== "granted") return n.permission === "denied" ? "🔕 denied" : "—";
+      const on = [n.daily_brief && "brief", n.big_moves && "moves", n.price_alerts && "targets"].filter(Boolean);
+      return "🔔 " + (on.length ? on.join(", ") : "enabled");
+    } catch { return "—"; }
+  };
   document.querySelector("#users tbody").innerHTML = data.users
-    .map(u => `<tr><td>${[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}</td><td>${u.email || "—"}</td><td>${u.invite_code}</td><td>${u.plan}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_seen_at)}</td></tr>`).join("") ||
-    '<tr><td colspan="6" style="color:var(--muted)">No users yet.</td></tr>';
+    .map(u => `<tr><td>${[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}</td><td>${u.email || "—"}</td><td>${u.invite_code}</td><td>${u.plan}</td><td>${notifCell(u)}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_seen_at)}</td></tr>`).join("") ||
+    '<tr><td colspan="7" style="color:var(--muted)">No users yet.</td></tr>';
 }
 
 // --- Copilot chat -----------------------------------------------------

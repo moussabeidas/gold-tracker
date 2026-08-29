@@ -272,7 +272,10 @@ app.get("/v1/admin/users", requireAdmin, (c) => {
   const rows = q
     ? db
         .prepare(
-          `SELECT id, email, first_name, last_name, invite_code, plan, created_at, last_seen_at
+          `SELECT id, email, first_name, last_name, invite_code, plan, created_at, last_seen_at,
+                  (SELECT props FROM events ev
+                   WHERE ev.user_id = users.id AND ev.name = 'notification_settings'
+                   ORDER BY ev.created_at DESC LIMIT 1) AS notif_props
            FROM users
            WHERE email LIKE ? OR first_name LIKE ? OR invite_code = ?
            ORDER BY last_seen_at DESC LIMIT ?`
@@ -280,7 +283,10 @@ app.get("/v1/admin/users", requireAdmin, (c) => {
         .all(`%${q}%`, `%${q}%`, q.toUpperCase(), limit)
     : db
         .prepare(
-          `SELECT id, email, first_name, last_name, invite_code, plan, created_at, last_seen_at
+          `SELECT id, email, first_name, last_name, invite_code, plan, created_at, last_seen_at,
+                  (SELECT props FROM events ev
+                   WHERE ev.user_id = users.id AND ev.name = 'notification_settings'
+                   ORDER BY ev.created_at DESC LIMIT 1) AS notif_props
            FROM users ORDER BY last_seen_at DESC LIMIT ?`
         )
         .all(limit);
