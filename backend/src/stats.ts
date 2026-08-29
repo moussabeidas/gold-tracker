@@ -165,6 +165,30 @@ export function computeStats() {
     };
   });
 
+  // Notification adoption — each user's latest notification_settings event.
+  const notifications = db
+    .prepare(
+      `SELECT
+         COALESCE(SUM(CASE WHEN json_extract(props,'$.permission')='granted' THEN 1 ELSE 0 END),0) AS granted,
+         COALESCE(SUM(CASE WHEN json_extract(props,'$.permission')='denied' THEN 1 ELSE 0 END),0) AS denied,
+         COALESCE(SUM(CAST(json_extract(props,'$.daily_brief') AS INTEGER)),0) AS dailyBrief,
+         COALESCE(SUM(CAST(json_extract(props,'$.big_moves') AS INTEGER)),0) AS bigMoves,
+         COALESCE(SUM(CAST(json_extract(props,'$.price_alerts') AS INTEGER)),0) AS priceAlerts
+       FROM events e
+       WHERE name = 'notification_settings' AND user_id IS NOT NULL
+         AND created_at = (
+           SELECT MAX(created_at) FROM events e2
+           WHERE e2.user_id = e.user_id AND e2.name = 'notification_settings'
+         )`
+    )
+    .get() as {
+    granted: number;
+    denied: number;
+    dailyBrief: number;
+    bigMoves: number;
+    priceAlerts: number;
+  };
+
   const k30 =
     totals.users > 0
       ? Math.round((totals.referrals / Math.max(active.mau, 1)) * 100) / 100
@@ -185,6 +209,7 @@ export function computeStats() {
       investedUsd: Math.round(portfolio.invested * 100) / 100,
     },
     history: { dauByDay, eventsByDay, goldByDay },
+    notifications,
     kFactorProxy: k30,
   };
 }
