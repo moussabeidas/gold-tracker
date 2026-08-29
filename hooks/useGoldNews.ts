@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 
+import { fetchCuratedNews } from "@/lib/api";
 import { fetchNews, type NewsStory } from "@/lib/marketData";
 import { GOLD_NEWS } from "@/data/news";
 import type { NewsArticle } from "@/components/NewsItem";
@@ -45,7 +46,16 @@ export function useGoldNews() {
     if (cache && Date.now() - cache.at < TTL_MS) return;
 
     let cancelled = false;
-    Promise.all(QUERIES.map((q) => fetchNews(q, 10))).then((batches) => {
+    // The server fetches and curates once for everyone — far more reliable
+    // than on-device requests to news endpoints. Device fetch is fallback.
+    const load = async (): Promise<NewsStory[][]> => {
+      const curated = await fetchCuratedNews().catch(() => null);
+      if (curated) return [curated];
+      return Promise.all(QUERIES.map((q) => fetchNews(q, 10))).then((b) =>
+        b.map((x) => x ?? [])
+      );
+    };
+    load().then((batches) => {
       if (cancelled) return;
 
       // Merge all queries, dedupe by normalized title

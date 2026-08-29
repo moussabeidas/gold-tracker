@@ -97,3 +97,20 @@ export async function deleteBackendAccount(): Promise<boolean> {
   const result = await api<{ ok: boolean }>("/v1/me", { method: "DELETE" });
   return !!result?.ok;
 }
+
+export interface CuratedStory {
+  id: string;
+  title: string;
+  publisher: string;
+  url: string;
+  publishedAt: number;
+  thumbnailUrl: string | null;
+}
+
+/** Server-curated gold news (cached backend-side); null when unavailable. */
+export async function fetchCuratedNews(): Promise<CuratedStory[] | null> {
+  const result = await api<{ articles: CuratedStory[] }>("/v1/news", {
+    auth: false,
+  });
+  return result?.articles?.length ? result.articles : null;
+}

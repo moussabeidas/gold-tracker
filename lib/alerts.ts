@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 
+import { fetchCuratedNews } from "./api";
 import { fetchQuote, fetchNews } from "./marketData";
 import { formatInCurrency, loadCurrencyState } from "./currency";
 
@@ -167,7 +168,9 @@ export async function checkBigMove(force = false): Promise<void> {
   }
 
   const [stories, cur] = await Promise.all([
-    fetchNews("gold price market", 3).catch(() => null),
+    fetchCuratedNews()
+      .catch(() => null)
+      .then((s2) => s2 ?? fetchNews("gold price market", 3).catch(() => null)),
     loadCurrencyState(),
   ]);
   const price = formatInCurrency(quote.price, cur, { decimals: 2 });
@@ -233,7 +236,9 @@ async function composeBriefContent(): Promise<{ title: string; body: string }> {
         (q) => q ?? fetchQuote("GC=F", 500, 20000)
       ),
       readPortfolioGrams(),
-      fetchNews("gold price market", 3).catch(() => null),
+      fetchCuratedNews()
+        .catch(() => null)
+        .then((s2) => s2 ?? fetchNews("gold price market", 3).catch(() => null)),
       loadCurrencyState(),
     ]);
     if (!quote) return fallback;
