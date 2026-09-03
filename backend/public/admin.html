@@ -96,6 +96,10 @@
 
   <div class="row2" style="margin-top:14px">
     <div class="card">
+      <h3>Users by country</h3>
+      <table id="countries"><thead><tr><th>Country</th><th style="text-align:right">Users</th><th style="text-align:right">Share</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
       <h3>Referral leaderboard</h3>
       <table id="referrers"><thead><tr><th>User</th><th>Code</th><th style="text-align:right">Referrals</th></tr></thead><tbody></tbody></table>
     </div>
@@ -107,7 +111,7 @@
 
   <div class="card wide" style="margin-top:14px">
     <h3>Users <input id="q" placeholder="search email / name / code" style="margin-left:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:#101014;color:var(--text)" onkeydown="if(event.key==='Enter')loadUsers()"/></h3>
-    <table id="users"><thead><tr><th>Name</th><th>Email</th><th>Code</th><th>Plan</th><th>Joined</th><th>Last seen</th><th>Alerts</th></tr></thead><tbody></tbody></table>
+    <table id="users"><thead><tr><th>Name</th><th>Email</th><th>Country</th><th>Code</th><th>Plan</th><th>Alerts</th><th>Joined</th><th>Last seen</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card wide" style="margin-top:14px">
@@ -135,6 +139,17 @@ async function api(path) {
 
 function kpi(label, value, hint) {
   return `<div class="card kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="hint">${hint || ""}</div></div>`;
+}
+
+function flag(code) {
+  if (!/^[A-Z]{2}$/.test(code || "")) return "🌐";
+  return [...code].map(ch => String.fromCodePoint(0x1f1e6 + ch.charCodeAt(0) - 65)).join("");
+}
+
+const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
+function countryLabel(code) {
+  if (!/^[A-Z]{2}$/.test(code || "")) return "Unknown";
+  try { return countryNames.of(code) || code; } catch { return code; }
 }
 
 async function login() {
@@ -201,6 +216,11 @@ async function render() {
     .map(e => `<tr><td>${e.name}</td><td class="num">${e.n.toLocaleString()}</td></tr>`).join("") ||
     '<tr><td colspan="2" style="color:var(--muted)">No events yet.</td></tr>';
 
+  const totalUsers = Math.max(1, s.totals.users);
+  document.querySelector("#countries tbody").innerHTML = (s.countries || [])
+    .map(r => `<tr><td>${flag(r.code)} ${countryLabel(r.code)}</td><td class="num">${r.n.toLocaleString()}</td><td class="num">${Math.round((r.n / totalUsers) * 100)}%</td></tr>`).join("") ||
+    '<tr><td colspan="3" style="color:var(--muted)">Countries appear as users open the app.</td></tr>';
+
   document.querySelector("#referrers tbody").innerHTML = s.topReferrers
     .map(r => `<tr><td>${r.name}</td><td>${r.code}</td><td class="num">${r.n}</td></tr>`).join("") ||
     '<tr><td colspan="3" style="color:var(--muted)">No referrals yet.</td></tr>';
@@ -226,8 +246,8 @@ async function loadUsers() {
     } catch { return "—"; }
   };
   document.querySelector("#users tbody").innerHTML = data.users
-    .map(u => `<tr><td>${[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}</td><td>${u.email || "—"}</td><td>${u.invite_code}</td><td>${u.plan}</td><td>${notifCell(u)}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_seen_at)}</td></tr>`).join("") ||
-    '<tr><td colspan="7" style="color:var(--muted)">No users yet.</td></tr>';
+    .map(u => `<tr><td>${[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}</td><td>${u.email || "—"}</td><td title="${countryLabel(u.country)}">${u.country ? flag(u.country) + " " + u.country : "—"}</td><td>${u.invite_code}</td><td>${u.plan}</td><td>${notifCell(u)}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_seen_at)}</td></tr>`).join("") ||
+    '<tr><td colspan="8" style="color:var(--muted)">No users yet.</td></tr>';
 }
 
 // --- Copilot chat -----------------------------------------------------
