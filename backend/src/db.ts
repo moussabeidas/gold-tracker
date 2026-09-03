@@ -62,6 +62,13 @@ CREATE TABLE IF NOT EXISTS subscription_events (
 );
 `);
 
+// Additive migrations for databases created before a column existed.
+try {
+  db.exec("ALTER TABLE users ADD COLUMN country TEXT");
+} catch {
+  // column already exists
+}
+
 export interface UserRow {
   id: string;
   apple_sub: string;
@@ -71,6 +78,7 @@ export interface UserRow {
   invite_code: string;
   referred_by: string | null;
   plan: string;
+  country: string | null;
   created_at: number;
   last_seen_at: number;
 }
@@ -131,6 +139,14 @@ export function upsertUser(input: {
     }
   }
   throw new Error("unreachable");
+}
+
+/** Records where a user signs in from; first sighting wins. */
+export function setUserCountry(userId: string, country: string): void {
+  db.prepare("UPDATE users SET country = ? WHERE id = ? AND country IS NULL").run(
+    country,
+    userId
+  );
 }
 
 export function touchUser(userId: string): void {

@@ -56,6 +56,14 @@ export function computeStats() {
     )
     .all(now - 7 * DAY) as { name: string; n: number }[];
 
+  // Where users are (ISO code from their sign-in connection).
+  const countries = db
+    .prepare(
+      `SELECT COALESCE(country, '') AS code, COUNT(*) AS n
+       FROM users GROUP BY code ORDER BY n DESC, code LIMIT 12`
+    )
+    .all() as { code: string; n: number }[];
+
   // Referral leaderboard.
   const topReferrers = db
     .prepare(
@@ -200,6 +208,7 @@ export function computeStats() {
     active,
     signupsByDay,
     funnel,
+    countries,
     topEvents,
     topReferrers,
     subEvents,

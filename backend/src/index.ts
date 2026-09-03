@@ -18,7 +18,9 @@ import {
   createReferral,
   referralCount,
   deleteUser,
+  setUserCountry,
 } from "./db.js";
+import { clientIp, lookupCountry } from "./geo.js";
 import {
   verifyAppleIdentityToken,
   issueSessionToken,
@@ -34,6 +36,23 @@ const REFERRAL_TARGET = 10;
 type Vars = { userId: string };
 const app = new Hono<{ Variables: Vars }>();
 app.use("*", logger());
+
+// Fill in the user's country (once, from their connection) without
+// delaying the response. Existing users pick theirs up on next app open.
+function noteCountry(
+  forwardedFor: string | undefined,
+  userId: string,
+  known: string | null
+): void {
+  if (known) return;
+  const ip = clientIp(forwardedFor);
+  if (!ip) return;
+  lookupCountry(ip)
+    .then((code) => {
+      if (code) setUserCountry(userId, code);
+    })
+    .catch(() => {});
+}
 
 app.get("/health", (c) => c.json({ ok: true }));
 
@@ -65,6 +84,7 @@ app.post("/v1/auth/apple", async (c) => {
     lastName: parsed.data.lastName ?? null,
   });
   recordEvent(user.id, "auth", { method: "apple" });
+  noteCountry(c.req.header("x-forwarded-for"), user.id, user.country);
 
   return c.json({
     token: await issueSessionToken(user.id),
@@ -179,6 +199,11 @@ app.post("/v1/events", requireUser, async (c) => {
   if (!parsed.success) return c.json({ error: "bad request" }, 400);
   const userId = c.get("userId");
   touchUser(userId);
+  noteCountry(
+    c.req.header("x-forwarded-for"),
+    userId,
+    getUser(userId)?.country ?? null
+  );
   for (const ev of parsed.data.events) {
     recordEvent(userId, ev.name, ev.props);
   }
@@ -272,7 +297,7 @@ app.get("/v1/admin/users", requireAdmin, (c) => {
   const rows = q
     ? db
         .prepare(
-          `SELECT id, email, first_name, last_name, invite_code, plan, created_at, last_seen_at,
+          `SELECT id, email, first_name, last_name, invite_code, plan, country, created_at, last_seen_at,
                   (SELECT props FROM events ev
                    WHERE ev.user_id = users.id AND ev.name = 'notification_settings'
                    ORDER BY ev.created_at DESC LIMIT 1) AS notif_props
@@ -283,7 +308,7 @@ app.get("/v1/admin/users", requireAdmin, (c) => {
         .all(`%${q}%`, `%${q}%`, q.toUpperCase(), limit)
     : db
         .prepare(
-          `SELECT id, email, first_name, last_name, invite_code, plan, created_at, last_seen_at,
+          `SELECT id, email, first_name, last_name, invite_code, plan, country, created_at, last_seen_at,
                   (SELECT props FROM events ev
                    WHERE ev.user_id = users.id AND ev.name = 'notification_settings'
                    ORDER BY ev.created_at DESC LIMIT 1) AS notif_props
