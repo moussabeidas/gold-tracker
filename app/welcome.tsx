@@ -18,6 +18,12 @@ import {
   requestAlertPermission,
 } from "@/lib/alerts";
 import { track } from "@/lib/analytics";
+import {
+  DemoScan,
+  DemoAlerts,
+  DemoWidget,
+  DemoSpark,
+} from "@/components/OnboardingDemos";
 
 export const ONBOARDING_KEY = "onboarding_v1_done";
 
@@ -87,11 +93,12 @@ export default function WelcomeScreen() {
   };
 
   const livePrice = anchorPrice > 0 ? fmt(anchorPrice) : null;
+  const compactPrice = anchorPrice > 0 ? fmt(Math.round(anchorPrice)) : null;
 
   const pages = [
     // 0 — welcome
     <>
-      <SpinningCoin size={96} periodMs={5000} />
+      <SpinningCoin size={84} periodMs={5000} />
       <Text style={styles.eyebrow}>WELCOME TO GOLD PRICER</Text>
       <Text style={styles.title}>Your gold, priced live</Text>
       {livePrice ? (
@@ -100,39 +107,36 @@ export default function WelcomeScreen() {
           <Text style={styles.priceChipText}>{livePrice} / oz right now</Text>
         </View>
       ) : null}
+      <DemoSpark />
       <Text style={styles.body}>
         Live spot prices, your portfolio's real value, and alerts when the
         market moves — in your currency.
       </Text>
     </>,
-    // 1 — add gold
+    // 1 — add gold (photo scan demo)
     <>
-      <View style={styles.bigIcon}>
-        <Feather name="briefcase" size={40} color={Colors.dark.gold} />
-      </View>
       <Text style={styles.eyebrow}>STEP 1</Text>
-      <Text style={styles.title}>Add the gold you own</Text>
+      <Text style={styles.title}>Snap it. We read it.</Text>
+      <DemoScan />
+      <Text style={styles.body}>
+        Point your camera at a bar or coin — the stamps are read on your
+        phone and the details fill themselves. Or type them in; jewelry
+        works too.
+      </Text>
       <View style={styles.points}>
-        <Point icon="plus-circle" text="Bars, coins, jewelry — any purity" />
         <Point icon="trending-up" text="See what it's worth, updated live" />
         <Point icon="dollar-sign" text="Track profit vs. what you paid" />
       </View>
-      <Text style={styles.body}>
-        It stays on your device — private, and free for your first holdings.
-      </Text>
     </>,
-    // 2 — alerts
+    // 2 — alerts (notification demo)
     <>
-      <View style={styles.bigIcon}>
-        <Feather name="bell" size={40} color={Colors.dark.gold} />
-      </View>
       <Text style={styles.eyebrow}>STEP 2</Text>
       <Text style={styles.title}>Never miss a move</Text>
-      <View style={styles.points}>
-        <Point icon="zap" text="Alert when gold rallies or drops" />
-        <Point icon="sunrise" text="Morning brief with price and news" />
-        <Point icon="target" text="Your own price targets (optional)" />
-      </View>
+      <DemoAlerts priceText={compactPrice} />
+      <Text style={styles.body}>
+        A ping when gold rallies or drops, a morning brief with price and
+        news, and your own price targets if you want them.
+      </Text>
       {alertsOn ? (
         <View style={styles.enabledChip}>
           <Feather name="check-circle" size={16} color={Colors.dark.positive} />
@@ -149,19 +153,18 @@ export default function WelcomeScreen() {
         </AnimatedPressable>
       )}
     </>,
-    // 3 — widget + go
+    // 3 — widget demo + go
     <>
-      <View style={styles.bigIcon}>
-        <Feather name="grid" size={40} color={Colors.dark.gold} />
-      </View>
       <Text style={styles.eyebrow}>STEP 3</Text>
       <Text style={styles.title}>Gold on your Home Screen</Text>
+      <DemoWidget
+        priceText={compactPrice}
+        changeText={"+1.8% today"}
+      />
       <Text style={styles.body}>
-        Add the Gold Pricer widget: touch and hold your Home Screen, tap the
-        {" "}
-        <Text style={styles.bold}>+</Text> button, and search for{" "}
-        <Text style={styles.bold}>Gold Pricer</Text>. Live price and your
-        portfolio, always one glance away.
+        Touch and hold your Home Screen, tap <Text style={styles.bold}>+</Text>,
+        and search <Text style={styles.bold}>Gold Pricer</Text>. Live price
+        and your portfolio, one glance away.
       </Text>
     </>,
   ];
@@ -182,13 +185,16 @@ export default function WelcomeScreen() {
         ))}
       </View>
 
-      <Animated.View
+      <Animated.ScrollView
         key={step}
         entering={step === 0 ? FadeIn.duration(400) : FadeInDown.duration(350).springify()}
-        style={styles.card}
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.card}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         {pages[step]}
-      </Animated.View>
+      </Animated.ScrollView>
 
       <View style={styles.footer}>
         {step < LAST_STEP ? (
@@ -260,11 +266,12 @@ const styles = StyleSheet.create({
     width: 20,
   },
   card: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 16,
     paddingHorizontal: 6,
+    paddingVertical: 8,
   },
   bigIcon: {
     width: 88,
