@@ -21,6 +21,7 @@ import { StatusBarBlur } from "@/components/StatusBarBlur";
 import { WidgetSync } from "@/components/WidgetSync";
 import Colors from "@/constants/colors";
 import { track } from "@/lib/analytics";
+import { noteAppOpenForRating } from "@/lib/rating";
 import { AuthProvider } from "@/lib/auth";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { GoldPriceProvider } from "@/context/GoldPriceContext";
@@ -170,9 +171,10 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  // One funnel event per cold start.
+  // One funnel event per cold start; regulars may get the rating sheet.
   useEffect(() => {
     track("app_open");
+    noteAppOpenForRating();
   }, []);
 
   if (!fontsLoaded && !fontError) return null;
