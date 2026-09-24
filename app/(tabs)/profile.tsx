@@ -337,6 +337,15 @@ export default function ProfileScreen() {
               Haptics.selectionAsync();
               router.push("/currency-settings");
             }}
+          />
+          <MenuRow
+            icon="play-circle"
+            label="App Intro"
+            value="Replay"
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/welcome");
+            }}
             isLast
           />
         </View>
