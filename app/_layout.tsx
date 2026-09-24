@@ -6,9 +6,10 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -37,6 +38,33 @@ function PortfolioWrapper({ children }: { children: React.ReactNode }) {
   return (
     <PortfolioProvider userId={user?.id}>{children}</PortfolioProvider>
   );
+}
+
+/**
+ * Opens the first-launch intro once. Waits a beat so the custom splash
+ * covers the transition, and stands down if a deep link (invite, etc.)
+ * has already navigated somewhere.
+ */
+function OnboardingGate() {
+  const pathname = usePathname();
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const done = await AsyncStorage.getItem("onboarding_v1_done");
+        if (cancelled || done) return;
+        if (pathname === "/" || pathname === "/index") {
+          router.push("/welcome");
+        }
+      } catch {}
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
 }
 
 function RootLayoutNav() {
@@ -104,6 +132,16 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="welcome"
+        options={{
+          headerShown: false,
+          presentation: "fullScreenModal",
+          animation: "fade",
+          gestureEnabled: false,
+          contentStyle: { backgroundColor: Colors.dark.background },
+        }}
+      />
+      <Stack.Screen
         name="currency-settings"
         options={{
           headerShown: false,
@@ -155,6 +193,7 @@ export default function RootLayout() {
                     <PortfolioWrapper>
                       <StatusBar style="light" />
                       <WidgetSync />
+                      <OnboardingGate />
                       <RootLayoutNav />
                       <StatusBarBlur />
                       {showCustomSplash && (

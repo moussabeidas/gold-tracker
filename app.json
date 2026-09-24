@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gold Pricer",
     "slug": "gold-tracker",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "goldtracker",
@@ -17,7 +17,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.mbeidas.goldtracker",
-      "buildNumber": "49",
+      "buildNumber": "50",
       "supportsTablet": false,
       "requireFullScreen": true,
       "infoPlist": {
