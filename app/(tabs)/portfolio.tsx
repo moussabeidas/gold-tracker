@@ -32,6 +32,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { FocusReveal } from "@/components/FocusReveal";
 import { SpinningCoin } from "@/components/SpinningCoin";
 import { formatYmd } from "@/lib/dates";
+import { PortfolioHistoryCard } from "@/components/PortfolioHistoryCard";
 import { resolveImageUri } from "@/lib/images";
 
 function PurchaseCard({
@@ -143,6 +144,7 @@ export default function PortfolioScreen() {
     usePortfolio();
   const { isPro, maxItems } = useSubscription();
   const { pricePerGram } = useGoldPrice();
+  const { currency, convert, fmt } = useCurrency();
   const isIOS = Platform.OS === "ios";
 
   if (!isAuthenticated) {
@@ -156,13 +158,12 @@ export default function PortfolioScreen() {
   const isGainPositive = totalGain >= 0;
   const gainColor = isGainPositive ? Colors.dark.positive : Colors.dark.negative;
   const totalOz = (totalWeightGrams / TROY_OUNCE_GRAMS).toFixed(4);
-  const { currency, convert, fmt } = useCurrency();
 
 
   const handleAdd = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (atLimit) {
-      router.push("/paywall");
+      router.push({ pathname: "/paywall", params: { from: "limit" } });
     } else {
       router.push("/add-purchase");
     }
@@ -265,6 +266,12 @@ export default function PortfolioScreen() {
               </Text>
             </View>
           </View>
+        </FocusReveal>
+      )}
+
+      {purchases.length > 0 && (
+        <FocusReveal delay={140}>
+          <PortfolioHistoryCard purchases={purchases} isPro={isPro} />
         </FocusReveal>
       )}
 

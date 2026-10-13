@@ -44,9 +44,33 @@ struct PortfolioView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
   }
 
+  private var locked: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      HStack(spacing: 6) {
+        CoinMark(size: 18)
+        Text("PRO")
+          .font(.system(size: 11, weight: .heavy, design: .rounded))
+          .foregroundStyle(goldGradient)
+      }
+      Spacer(minLength: 0)
+      Text("Your portfolio, live")
+        .font(.system(size: 15, weight: .bold, design: .rounded))
+        .foregroundStyle(.white)
+      Text("Unlock with Gold Pricer Pro.")
+        .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(.white.opacity(0.5))
+    }
+    .padding(14)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    .widgetURL(URL(string: "goldtracker://paywall?from=widget"))
+  }
+
   // MARK: System small
 
   private var systemSmall: some View {
+    if !entry.snapshot.pro {
+      return AnyView(locked)
+    }
     if entry.hasHoldings {
       return AnyView(
         VStack(alignment: .leading, spacing: 4) {
@@ -81,6 +105,9 @@ struct PortfolioView: View {
   // MARK: System medium
 
   private var systemMedium: some View {
+    if !entry.snapshot.pro {
+      return AnyView(locked.frame(maxWidth: .infinity))
+    }
     if entry.hasHoldings {
       return AnyView(
         VStack(alignment: .leading, spacing: 10) {
@@ -127,7 +154,10 @@ struct PortfolioView: View {
     VStack(alignment: .leading, spacing: 2) {
       Text("GOLD PORTFOLIO")
         .font(.system(size: 12, weight: .semibold))
-      if entry.hasHoldings {
+      if !entry.snapshot.pro {
+        Text("Unlock with Pro")
+          .font(.system(size: 13, weight: .medium))
+      } else if entry.hasHoldings {
         Text(fmtUsd(entry.portfolioValue))
           .font(.system(size: 22, weight: .bold, design: .rounded))
           .lineLimit(1)

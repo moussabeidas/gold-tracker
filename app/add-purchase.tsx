@@ -26,6 +26,10 @@ import { fetchGoldPriceOnDate } from "@/lib/marketData";
 import { scanGoldImage } from "@/lib/goldVision";
 import { parseYmd, toYmd, formatYmd } from "@/lib/dates";
 import { persistImage, resolveImageUri } from "@/lib/images";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSubscription } from "@/context/SubscriptionContext";
+
+const FIRST_GOLD_OFFER_KEY = "@gold_first_gold_offer_shown";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -71,6 +75,7 @@ function InputField({
 export default function AddPurchaseScreen() {
   const insets = useSafeAreaInsets();
   const { addPurchase, updatePurchase, purchases } = usePortfolio();
+  const { isPro } = useSubscription();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editing = id ? purchases.find((p) => p.id === id) : undefined;
 
@@ -332,6 +337,7 @@ export default function AddPurchaseScreen() {
       imageUri: storedImage,
       notes: notes.trim() || undefined,
     };
+    const wasFirst = !editing && purchases.length === 0;
     if (editing) {
       await updatePurchase(editing.id, record);
     } else {
@@ -340,6 +346,18 @@ export default function AddPurchaseScreen() {
 
     setIsSaving(false);
     router.back();
+
+    // Right after someone sees their first gold valued is when Pro makes
+    // the most sense — offer it once, ever.
+    if (wasFirst && !isPro) {
+      const shown = await AsyncStorage.getItem(FIRST_GOLD_OFFER_KEY).catch(() => "1");
+      if (!shown) {
+        await AsyncStorage.setItem(FIRST_GOLD_OFFER_KEY, "1").catch(() => {});
+        setTimeout(() => {
+          router.push({ pathname: "/paywall", params: { from: "first_gold" } });
+        }, 1200);
+      }
+    }
   };
 
   const topPad =

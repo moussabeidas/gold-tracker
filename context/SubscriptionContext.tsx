@@ -18,12 +18,14 @@ import {
   getAvailablePurchases,
   purchaseUpdatedListener,
   purchaseErrorListener,
+  isEligibleForIntroOfferIOS,
   type Product,
   type Purchase,
 } from "expo-iap";
 
 import { useReferral } from "@/context/ReferralContext";
 import { track, flush } from "@/lib/analytics";
+import { PRO_FLAG_KEY } from "@/lib/entitlement";
 
 export type PlanId = "free" | "tracker_monthly" | "tracker_annual" | "lifetime";
 
@@ -41,6 +43,12 @@ export interface PlanPricing {
   monthly: string; // localized price strings, e.g. "$4.99"
   annual: string;
   lifetime: string;
+  /** Annual price spread over 12 months, in the store currency */
+  annualPerMonth: string | null;
+  /** How much Annual saves vs. 12 × Monthly, as a whole percent */
+  annualSavingsPct: number | null;
+  /** Free-trial length on Annual, when the store offers one and the user is eligible */
+  annualTrialDays: number | null;
 }
 
 interface SubscriptionContextValue {
@@ -68,7 +76,32 @@ const FALLBACK_PRICING: PlanPricing = {
   monthly: "$4.99",
   annual: "$29.99",
   lifetime: "$79.99",
+  annualPerMonth: null,
+  annualSavingsPct: null,
+  annualTrialDays: null,
 };
+
+function formatMoney(amount: number, currency: string | undefined): string | null {
+  if (!currency || !isFinite(amount)) return null;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: amount >= 100 ? 0 : 2,
+    }).format(amount);
+  } catch {
+    return null;
+  }
+}
+
+/** Free-trial length in days from the store's introductory offer, if any. */
+function trialDaysOf(product: any): number | null {
+  if (product?.introductoryPricePaymentModeIOS !== "free-trial") return null;
+  const count = Number(product?.introductoryPriceNumberOfPeriodsIOS ?? 1) || 1;
+  const unitDays: Record<string, number> = { day: 1, week: 7, month: 30, year: 365 };
+  const unit = unitDays[product?.introductoryPriceSubscriptionPeriodIOS ?? ""];
+  return unit ? count * unit : null;
+}
 
 const SubscriptionContext = createContext<SubscriptionContextValue>({
   subscription: { planId: "free" },
@@ -132,10 +165,32 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         const monthly = (subs ?? []).find((p) => p.id === SKU_MONTHLY);
         const annual = (subs ?? []).find((p) => p.id === SKU_ANNUAL);
         if (lifetime || monthly || annual) {
+          const annualPrice = Number((annual as any)?.price);
+          const monthlyPrice = Number((monthly as any)?.price);
+          const annualCurrency = (annual as any)?.currency as string | undefined;
+          const savings =
+            annualPrice > 0 && monthlyPrice > 0
+              ? Math.round((1 - annualPrice / (monthlyPrice * 12)) * 100)
+              : null;
+
+          // A trial only counts if this Apple ID can still claim it.
+          let trialDays = trialDaysOf(annual);
+          const groupId = (annual as any)?.subscriptionGroupIdIOS as string | undefined;
+          if (trialDays && groupId && Platform.OS === "ios") {
+            const eligible = await isEligibleForIntroOfferIOS(groupId).catch(
+              () => true
+            );
+            if (!eligible) trialDays = null;
+          }
+
           setPricing({
             lifetime: lifetime?.displayPrice ?? FALLBACK_PRICING.lifetime,
             monthly: monthly?.displayPrice ?? FALLBACK_PRICING.monthly,
             annual: annual?.displayPrice ?? FALLBACK_PRICING.annual,
+            annualPerMonth:
+              annualPrice > 0 ? formatMoney(annualPrice / 12, annualCurrency) : null,
+            annualSavingsPct: savings && savings > 0 ? savings : null,
+            annualTrialDays: trialDays,
           });
           storeReadyRef.current = true;
           setStoreReady(true);
@@ -299,6 +354,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const isPro = subscription.planId !== "free" || hasReferralPro;
   const maxItems = isPro ? Infinity : FREE_LIMIT + bonusSlots;
+
+  useEffect(() => {
+    if (isLoading) return;
+    AsyncStorage.setItem(PRO_FLAG_KEY, isPro ? "1" : "0").catch(() => {});
+  }, [isPro, isLoading]);
 
   return (
     <SubscriptionContext.Provider

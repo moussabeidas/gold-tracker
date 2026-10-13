@@ -17,6 +17,7 @@ import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { useGoldPrice } from "@/context/GoldPriceContext";
 import { usePortfolio } from "@/context/PortfolioContext";
 import { publishWidgetSnapshot } from "@/lib/widgetBridge";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 function formatUsd(value: number): string {
   return `$${value.toLocaleString("en-US", {
@@ -76,6 +77,7 @@ export default function WidgetsSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { anchorPrice, dayOpen } = useGoldPrice();
   const { totalWeightGrams, totalInvested, purchases } = usePortfolio();
+  const { isPro } = useSubscription();
   const [refreshed, setRefreshed] = useState(false);
 
   const change = anchorPrice - dayOpen;
@@ -91,6 +93,7 @@ export default function WidgetsSettingsScreen() {
       costBasis: totalInvested,
       holdingsCount: purchases.length,
       updatedAt: Math.floor(Date.now() / 1000),
+      pro: isPro,
     });
     setRefreshed(true);
     setTimeout(() => setRefreshed(false), 2000);
@@ -119,15 +122,31 @@ export default function WidgetsSettingsScreen() {
           />
           <WidgetPreview
             title="PORTFOLIO"
-            value={purchases.length ? formatUsd(portfolioValue) : "—"}
+            value={!isPro ? "Pro" : purchases.length ? formatUsd(portfolioValue) : "—"}
             sub={
-              purchases.length
-                ? `${totalWeightGrams.toFixed(1)}g of gold`
-                : "Add gold to track"
+              !isPro
+                ? "Unlock with Pro"
+                : purchases.length
+                  ? `${totalWeightGrams.toFixed(1)}g of gold`
+                  : "Add gold to track"
             }
-            icon="briefcase"
+            icon={isPro ? "briefcase" : "lock"}
           />
         </View>
+
+        {!isPro && (
+          <AnimatedPressable
+            scaleDown={0.97}
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push({ pathname: "/paywall", params: { from: "widget" } });
+            }}
+            style={styles.proCta}
+          >
+            <Feather name="lock" size={14} color={Colors.dark.background} />
+            <Text style={styles.proCtaText}>Unlock the portfolio widget</Text>
+          </AnimatedPressable>
+        )}
 
         <Text style={styles.blurb}>
           Live gold price and your portfolio value, on your Home Screen and
@@ -175,6 +194,20 @@ export default function WidgetsSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  proCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.dark.gold,
+    borderRadius: 13,
+    paddingVertical: 13,
+  },
+  proCtaText: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: Colors.dark.background,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.dark.background,

@@ -17,6 +17,8 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { AnimatedPressable } from "@/components/AnimatedPressable";
 import { useGoldPrice } from "@/context/GoldPriceContext";
+import { useSubscription } from "@/context/SubscriptionContext";
+import { track } from "@/lib/analytics";
 import {
   loadAlertPrefs,
   saveAlertPrefs,
@@ -29,6 +31,7 @@ import {
 export default function AlertsSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { anchorPrice } = useGoldPrice();
+  const { isPro } = useSubscription();
   const [prefs, setPrefs] = useState<AlertPrefs>(DEFAULT_PREFS);
   const [aboveText, setAboveText] = useState("");
   const [belowText, setBelowText] = useState("");
@@ -54,6 +57,11 @@ export default function AlertsSettingsScreen() {
 
   const toggleEnabled = async (value: boolean) => {
     Haptics.selectionAsync();
+    if (value && !isPro) {
+      track("pro_gate_tap", { feature: "price_targets" });
+      router.push({ pathname: "/paywall", params: { from: "targets" } });
+      return;
+    }
     if (value) {
       const ok = await requestAlertPermission();
       if (!ok) {
@@ -119,18 +127,62 @@ export default function AlertsSettingsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
+          <View style={[styles.row, styles.rowBordered]}>
+            <View style={styles.rowIcon}>
+              <Feather name="sunrise" size={16} color={Colors.dark.gold} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>Daily brief</Text>
+              <Text style={styles.rowHint}>A 9 AM nudge with the market open</Text>
+            </View>
+            <Switch
+              value={prefs.dailyBrief}
+              onValueChange={toggleDaily}
+              trackColor={{ true: Colors.dark.gold, false: Colors.dark.surface }}
+              thumbColor="#fff"
+              disabled={!loaded}
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Feather name="trending-up" size={16} color={Colors.dark.gold} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>Market move alerts</Text>
+              <Text style={styles.rowHint}>
+                Big rallies or drops (±{BIG_MOVE_PCT}%+), with the day's headline
+              </Text>
+            </View>
+            <Switch
+              value={prefs.bigMoves}
+              onValueChange={toggleBigMoves}
+              trackColor={{ true: Colors.dark.gold, false: Colors.dark.surface }}
+              thumbColor="#fff"
+              disabled={!loaded}
+            />
+          </View>
+        </View>
+
+        <View style={styles.card}>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
               <Feather name="bell" size={16} color={Colors.dark.gold} />
             </View>
             <View style={styles.rowText}>
-              <Text style={styles.rowLabel}>Price alerts</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.rowLabel}>Price targets</Text>
+                {!isPro && (
+                  <View style={styles.proBadge}>
+                    <Text style={styles.proBadgeText}>PRO</Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.rowHint}>
-                Get notified when gold crosses your targets
+                Get notified when gold hits a price you choose
               </Text>
             </View>
             <Switch
-              value={prefs.enabled}
+              value={prefs.enabled && isPro}
               onValueChange={toggleEnabled}
               trackColor={{ true: Colors.dark.gold, false: Colors.dark.surface }}
               thumbColor="#fff"
@@ -139,7 +191,7 @@ export default function AlertsSettingsScreen() {
           </View>
         </View>
 
-        {prefs.enabled && (
+        {prefs.enabled && isPro && (
           <View style={styles.card}>
             <View style={[styles.row, styles.rowBordered]}>
               <View style={styles.rowIcon}>
@@ -188,43 +240,6 @@ export default function AlertsSettingsScreen() {
           </View>
         )}
 
-        <View style={styles.card}>
-          <View style={[styles.row, styles.rowBordered]}>
-            <View style={styles.rowIcon}>
-              <Feather name="sunrise" size={16} color={Colors.dark.gold} />
-            </View>
-            <View style={styles.rowText}>
-              <Text style={styles.rowLabel}>Daily brief</Text>
-              <Text style={styles.rowHint}>A 9 AM nudge with the market open</Text>
-            </View>
-            <Switch
-              value={prefs.dailyBrief}
-              onValueChange={toggleDaily}
-              trackColor={{ true: Colors.dark.gold, false: Colors.dark.surface }}
-              thumbColor="#fff"
-              disabled={!loaded}
-            />
-          </View>
-          <View style={styles.row}>
-            <View style={styles.rowIcon}>
-              <Feather name="trending-up" size={16} color={Colors.dark.gold} />
-            </View>
-            <View style={styles.rowText}>
-              <Text style={styles.rowLabel}>Market move alerts</Text>
-              <Text style={styles.rowHint}>
-                Big rallies or drops (±{BIG_MOVE_PCT}%+), with the day's headline
-              </Text>
-            </View>
-            <Switch
-              value={prefs.bigMoves}
-              onValueChange={toggleBigMoves}
-              trackColor={{ true: Colors.dark.gold, false: Colors.dark.surface }}
-              thumbColor="#fff"
-              disabled={!loaded}
-            />
-          </View>
-        </View>
-
         <Text style={styles.footnote}>
           Live price checks run while the app is open and periodically in the
           background. Spot gold is currently ${anchorPrice.toFixed(2)} per
@@ -269,6 +284,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.surfaceElevated,
     borderRadius: 14,
     overflow: "hidden",
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  proBadge: {
+    backgroundColor: Colors.dark.gold,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+  },
+  proBadgeText: {
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    color: "#000",
+    letterSpacing: 0.6,
   },
   row: {
     flexDirection: "row",

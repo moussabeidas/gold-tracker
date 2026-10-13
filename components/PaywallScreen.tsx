@@ -9,7 +9,7 @@ import {
   Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -37,22 +37,55 @@ const TERMS_URL =
   "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
 const PRIVACY_URL = "https://moussabeidas.github.io/gold-tracker/privacy.html";
 
+// Only features that are actually gated — App Review rejects paywalls that
+// sell what free users already have.
 const FEATURES = [
-  { icon: "layers" as const, text: "Unlimited portfolio holdings" },
-  { icon: "zap" as const, text: "Photo scan & auto-fill" },
-  { icon: "clock" as const, text: "Historical cost lookup" },
-  { icon: "star" as const, text: "First access to the Marketplace" },
+  { icon: "layers" as const, text: "Unlimited holdings (free: 2)" },
+  { icon: "target" as const, text: "Alerts at the exact price you choose" },
+  { icon: "trending-up" as const, text: "Your gold's value over time" },
+  { icon: "grid" as const, text: "Portfolio widget on your Home Screen" },
 ];
+
+const HEADLINES: Record<string, { title: string; subtitle: string }> = {
+  limit: {
+    title: "Track all your gold",
+    subtitle: "You've used your free slots. Pro tracks every bar, coin and piece.",
+  },
+  targets: {
+    title: "Get alerted at your price",
+    subtitle: "Pick a price — we'll tell you the moment gold gets there.",
+  },
+  history: {
+    title: "See what your gold has earned",
+    subtitle: "Your portfolio's value vs. what you paid, since day one.",
+  },
+  widget: {
+    title: "Your portfolio, at a glance",
+    subtitle: "Your gold's live value right on your Home Screen.",
+  },
+  first_gold: {
+    title: "Your gold is tracked 🎉",
+    subtitle: "Pro adds price-target alerts, history and your portfolio widget.",
+  },
+};
+const DEFAULT_HEADLINE = {
+  title: "Gold Pricer Pro",
+  subtitle: "Everything you need to keep an eye on your gold.",
+};
 
 export function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const { subscribe, restore, pricing, storeReady, isPro, refreshProducts } =
     useSubscription();
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const source = typeof from === "string" ? from : "direct";
+  const headline = HEADLINES[source] ?? DEFAULT_HEADLINE;
+  const trialDays = pricing.annualTrialDays;
   const [selected, setSelected] = useState<PaidPlan>("tracker_annual");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    track("paywall_view");
+    track("paywall_view", { from: source });
     // Products may have failed to load at launch — retry as the paywall
     // opens so prices and purchasing are ready by the time the user taps.
     if (!storeReady) refreshProducts();
@@ -124,8 +157,14 @@ export function PaywallScreen() {
       label: "Annual",
       price: pricing.annual,
       period: "per year",
-      note: "Just $2.50 / month",
-      badge: "BEST VALUE · 50% OFF",
+      note: trialDays
+        ? `${trialDays} days free, then ${pricing.annual}/year`
+        : pricing.annualPerMonth
+          ? `Just ${pricing.annualPerMonth} / month`
+          : "Billed once a year",
+      badge: pricing.annualSavingsPct
+        ? `BEST VALUE · SAVE ${pricing.annualSavingsPct}%`
+        : "BEST VALUE",
       preferred: true,
     },
     {
@@ -169,10 +208,8 @@ export function PaywallScreen() {
         style={styles.hero}
       >
         <SpinningCoin size={104} periodMs={8000} />
-        <Text style={styles.title}>Gold Pricer Pro</Text>
-        <Text style={styles.subtitle}>
-          The full vault — every feature, no limits.
-        </Text>
+        <Text style={styles.title}>{headline.title}</Text>
+        <Text style={styles.subtitle}>{headline.subtitle}</Text>
       </Animated.View>
 
       <View style={styles.features}>
@@ -263,12 +300,15 @@ export function PaywallScreen() {
             <ActivityIndicator color={Colors.dark.background} />
           ) : (
             <Text style={styles.ctaText}>
-              Continue —{" "}
-              {selected === "lifetime"
-                ? pricing.lifetime
-                : selected === "tracker_annual"
-                  ? `${pricing.annual}/yr`
-                  : `${pricing.monthly}/mo`}
+              {selected === "tracker_annual" && trialDays
+                ? `Start ${trialDays}-day free trial`
+                : `Continue — ${
+                    selected === "lifetime"
+                      ? pricing.lifetime
+                      : selected === "tracker_annual"
+                        ? `${pricing.annual}/yr`
+                        : `${pricing.monthly}/mo`
+                  }`}
             </Text>
           )}
         </AnimatedPressable>
@@ -282,6 +322,9 @@ export function PaywallScreen() {
         </AnimatedPressable>
 
         <Text style={styles.finePrint}>
+          {storeReady && selected === "tracker_annual" && trialDays
+            ? `Free for ${trialDays} days, then ${pricing.annual} per year. Cancel anytime in Settings → Apple ID → Subscriptions at least 24 hours before the trial ends and you won't be charged. `
+            : ""}
           {storeReady
             ? "Payment is charged to your Apple ID through the App Store. Monthly and Annual renew automatically until canceled in Settings → Apple ID → Subscriptions at least 24h before the period ends. Lifetime is a one-time purchase."
             : "Store connection unavailable — purchases can't be completed right now."}

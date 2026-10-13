@@ -134,8 +134,8 @@ export default function WelcomeScreen() {
       <Text style={styles.title}>Never miss a move</Text>
       <DemoAlerts priceText={compactPrice} />
       <Text style={styles.body}>
-        A ping when gold rallies or drops, a morning brief with price and
-        news, and your own price targets if you want them.
+        A ping when gold rallies or drops and a morning brief with price and
+        news. With Pro, alerts at the exact price you choose.
       </Text>
       {alertsOn ? (
         <View style={styles.enabledChip}>
@@ -163,8 +163,8 @@ export default function WelcomeScreen() {
       />
       <Text style={styles.body}>
         Touch and hold your Home Screen, tap <Text style={styles.bold}>+</Text>,
-        and search <Text style={styles.bold}>Gold Pricer</Text>. Live price
-        and your portfolio, one glance away.
+        and search <Text style={styles.bold}>Gold Pricer</Text>. The live
+        price, one glance away — and your portfolio too, with Pro.
       </Text>
     </>,
   ];
