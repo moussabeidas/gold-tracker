@@ -20,10 +20,13 @@ struct GoldSnapshot {
   var costBasis: Double
   var holdingsCount: Int
   var updatedAt: Date
+  /// Pro unlocks the portfolio widget. Snapshots written before the flag
+  /// existed decode as unlocked until the app next runs.
+  var pro: Bool
 
   static let fallback = GoldSnapshot(
     price: 3150.4, prevClose: 3118.5, pureGrams: 0, costBasis: 0,
-    holdingsCount: 0, updatedAt: Date()
+    holdingsCount: 0, updatedAt: Date(), pro: true
   )
 
   static func load() -> GoldSnapshot {
@@ -46,7 +49,8 @@ struct GoldSnapshot {
       pureGrams: asDouble(dict["pureGrams"]) ?? 0,
       costBasis: asDouble(dict["costBasis"]) ?? 0,
       holdingsCount: Int(asDouble(dict["holdingsCount"]) ?? 0),
-      updatedAt: Date(timeIntervalSince1970: updated)
+      updatedAt: Date(timeIntervalSince1970: updated),
+      pro: (asDouble(dict["pro"]) ?? 1) >= 0.5
     )
   }
 }

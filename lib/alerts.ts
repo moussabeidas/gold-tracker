@@ -8,6 +8,7 @@ import { track } from "./analytics";
 import { fetchCuratedNews } from "./api";
 import { fetchQuote, fetchNews } from "./marketData";
 import { formatInCurrency, loadCurrencyState } from "./currency";
+import { isProEntitled } from "./entitlement";
 
 // Price-alert engine. Preferences live in AsyncStorage; a background task
 // polls the spot price every ~15+ minutes (iOS decides the exact cadence)
@@ -118,6 +119,8 @@ export async function checkPriceAgainstTargets(price: number): Promise<void> {
 
   const prefs = await loadAlertPrefs();
   if (!prefs.enabled) return;
+  // Custom price targets are a Pro feature.
+  if (!(await isProEntitled())) return;
 
   let fired: { above?: boolean; below?: boolean } = {};
   try {

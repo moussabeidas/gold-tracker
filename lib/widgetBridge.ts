@@ -24,6 +24,8 @@ export interface WidgetSnapshot {
   holdingsCount: number;
   /** Epoch seconds of this snapshot. */
   updatedAt: number;
+  /** Pro unlocks the portfolio widget; the price widget is free. */
+  pro: boolean;
 }
 
 const storage =
@@ -44,6 +46,7 @@ export function publishWidgetSnapshot(snapshot: WidgetSnapshot): void {
       costBasis: round(snapshot.costBasis),
       holdingsCount: Math.round(snapshot.holdingsCount),
       updatedAt: Math.round(snapshot.updatedAt),
+      pro: snapshot.pro ? 1 : 0,
     });
     ExtensionStorage.reloadWidget();
   } catch {
