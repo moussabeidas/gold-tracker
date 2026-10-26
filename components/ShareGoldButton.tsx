@@ -10,7 +10,7 @@ import { ShareCard, type ShareCardData } from "@/components/ShareCard";
 import { track } from "@/lib/analytics";
 
 export function ShareGoldButton({ data }: { data: ShareCardData }) {
-  const cardRef = useRef<View>(null);
+  const cardRef = useRef<React.ComponentRef<typeof View>>(null);
   const [busy, setBusy] = useState(false);
 
   const handleShare = async () => {

@@ -127,7 +127,7 @@ export function SplashAnimation({ onFinish }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Colors.dark.background,
     alignItems: "center",
     justifyContent: "center",
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   shineClip: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: COIN / 2,
     overflow: "hidden",
   },

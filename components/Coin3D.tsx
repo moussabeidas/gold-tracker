@@ -56,7 +56,7 @@ function RimSlice({
     <Animated.View
       pointerEvents="none"
       style={[
-        StyleSheet.absoluteFillObject,
+        StyleSheet.absoluteFill,
         {
           borderRadius: size / 2,
           backgroundColor: index % 2 === 0 ? RIM_LIGHT : RIM_DARK,
@@ -117,7 +117,7 @@ export function Coin3D({
           rot={rot}
         />
       ))}
-      <Animated.View style={[StyleSheet.absoluteFillObject, faceStyle]}>
+      <Animated.View style={[StyleSheet.absoluteFill, faceStyle]}>
         <Image
           source={COIN_SOURCE}
           style={{ width: size, height: size }}
@@ -126,7 +126,7 @@ export function Coin3D({
         <Animated.View
           pointerEvents="none"
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             { borderRadius: size / 2, backgroundColor: "#000" },
             shadeStyle,
           ]}

@@ -15,7 +15,7 @@ export interface ShareCardData {
 
 // A fixed-size branded card captured off-screen and shared via the native
 // share sheet. Rendered at 2x for crisp output.
-export const ShareCard = forwardRef<View, { data: ShareCardData }>(
+export const ShareCard = forwardRef<React.ComponentRef<typeof View>, { data: ShareCardData }>(
   ({ data }, ref) => {
     const { fmt } = useCurrency();
     const color = data.isPositive ? Colors.dark.positive : Colors.dark.negative;

@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   heroGlow: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 42,
     backgroundColor: Colors.dark.goldFaint,
   },

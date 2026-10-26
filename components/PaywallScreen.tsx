@@ -358,6 +358,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.background,
   },
   content: {
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
     paddingHorizontal: 22,
     gap: 22,
   },

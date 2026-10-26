@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gold Pricer",
     "slug": "gold-tracker",
-    "version": "1.0.3",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "goldtracker",
@@ -17,9 +17,9 @@
     },
     "ios": {
       "bundleIdentifier": "com.mbeidas.goldtracker",
-      "buildNumber": "53",
+      "buildNumber": "54",
       "supportsTablet": false,
-      "requireFullScreen": true,
+      "requireFullScreen": false,
       "infoPlist": {
         "NSCameraUsageDescription": "Gold Tracker uses your camera to photograph your gold bars and coins for your portfolio records.",
         "NSPhotoLibraryUsageDescription": "Gold Tracker accesses your photo library to add images of your gold holdings.",
@@ -51,7 +51,7 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "16.0"
+            "deploymentTarget": "16.4"
           }
         }
       ],

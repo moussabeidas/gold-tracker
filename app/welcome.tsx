@@ -245,6 +245,9 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
     flex: 1,
     backgroundColor: Colors.dark.background,
     paddingHorizontal: 24,

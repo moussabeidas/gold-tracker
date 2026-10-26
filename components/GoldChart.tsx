@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import { View, StyleSheet, useWindowDimensions } from "react-native";
 import Svg, { Path, Defs, LinearGradient, Stop, Line, Circle } from "react-native-svg";
 import { PanResponder } from "react-native";
 import Animated, {
@@ -13,7 +13,6 @@ import Animated, {
 import { PricePoint } from "@/hooks/useGoldData";
 import Colors from "@/constants/colors";
 
-const { width: SCREEN_W } = Dimensions.get("window");
 const CHART_HEIGHT = 200;
 // Rendering more segments than ~2 per pt of width is invisible — thin the
 // series before building the path so intraday (390 points) stays cheap.
@@ -98,7 +97,8 @@ function EndpointHalo({ color, x, y }: { color: string; x: number; y: number }) 
 
 function GoldChartInner({ data, isPositive, onScrub }: GoldChartProps) {
   const [scrubX, setScrubX] = useState<number | null>(null);
-  const chartW = SCREEN_W;
+  // Follows the window, so the chart re-fits when iPhone Duo opens or closes.
+  const { width: chartW } = useWindowDimensions();
 
   const { path, areaPath, endY } = useMemo(
     () => buildPaths(thin(data), chartW, CHART_HEIGHT),
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   halo: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: HALO_SIZE / 2,
   },
   endDot: {

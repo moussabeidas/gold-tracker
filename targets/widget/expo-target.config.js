@@ -5,7 +5,7 @@ module.exports = (config) => ({
   // Appended to the main app id -> com.mbeidas.goldtracker.widget, matching
   // the widget provisioning profile.
   bundleIdentifier: ".widget",
-  deploymentTarget: "16.1",
+  deploymentTarget: "16.4",
   appleTeamId: "P2TSL4VJ5H",
   entitlements: {
     "com.apple.security.application-groups": ["group.com.mbeidas.goldtracker"],
