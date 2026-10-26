@@ -13,7 +13,9 @@ on:
 jobs:
   build-and-submit:
     name: Build & Submit to App Store
-    runs-on: macos-latest
+    # Xcode 27.1 (iOS 27.1 SDK) is required for apps to resize to fill the
+    # iPhone Duo inner display and earn the App Store's optimized badge.
+    runs-on: xcode-27
     env:
       # Inlined into the JS bundle by Metro during the archive step; the
       # app no-ops all backend calls when this is absent.
@@ -38,14 +40,20 @@ jobs:
 
       - name: Select Xcode version
         run: |
-          # Pick the newest Xcode on the runner — Apple requires the latest
-          # iOS SDK for App Store uploads, and /Applications/Xcode.app default
-          # varies between runner images.
-          XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
-          if [ -z "$XCODE" ]; then XCODE=/Applications/Xcode.app; fi
-          echo "Selecting $XCODE"
+          # Pinned: the image also carries Xcode betas, and App Store Connect
+          # rejects uploads built with a beta toolchain.
+          XCODE=/Applications/Xcode_27.1.app
+          if [ ! -d "$XCODE" ]; then
+            echo "Error: $XCODE not found on this runner image"
+            ls -d /Applications/Xcode*.app
+            exit 1
+          fi
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
+          if xcodebuild -version | grep -qiE "beta|release candidate"; then
+            echo "Error: selected Xcode is not a final release"
+            exit 1
+          fi
 
       - name: Set up code signing
         env:

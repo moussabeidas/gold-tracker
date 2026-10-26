@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,215,0,0.06)",
   },
   iconGlow: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 55,
     backgroundColor: "rgba(255,215,0,0.14)",
   },

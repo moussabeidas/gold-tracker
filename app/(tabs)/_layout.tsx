@@ -1,7 +1,7 @@
 import { BlurView } from "expo-blur";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
@@ -14,24 +14,24 @@ function NativeTabLayout() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "chart.line.uptrend.xyaxis", selected: "chart.line.uptrend.xyaxis" }} />
-        <Label>Gold</Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "chart.line.uptrend.xyaxis", selected: "chart.line.uptrend.xyaxis" }} />
+        <NativeTabs.Trigger.Label>Gold</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="portfolio">
-        <Icon sf={{ default: "briefcase", selected: "briefcase.fill" }} />
-        <Label>Portfolio</Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "briefcase", selected: "briefcase.fill" }} />
+        <NativeTabs.Trigger.Label>Portfolio</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="watchlist">
-        <Icon sf={{ default: "star", selected: "star.fill" }} />
-        <Label>Watchlist</Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "star", selected: "star.fill" }} />
+        <NativeTabs.Trigger.Label>Watchlist</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="market">
-        <Icon sf={{ default: "storefront", selected: "storefront.fill" }} />
-        <Label>Market</Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "storefront", selected: "storefront.fill" }} />
+        <NativeTabs.Trigger.Label>Market</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person", selected: "person.fill" }} />
-        <Label>Profile</Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "person", selected: "person.fill" }} />
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -83,9 +83,9 @@ function ClassicTabLayout() {
           title: "Gold",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="chart.line.uptrend.xyaxis" tintColor={color} size={22} />
+              <SymbolView name="chart.line.uptrend.xyaxis" tintColor={color as string} size={22} />
             ) : (
-              <Feather name="trending-up" size={22} color={color} />
+              <Feather name="trending-up" size={22} color={color as string} />
             ),
         }}
       />
@@ -95,9 +95,9 @@ function ClassicTabLayout() {
           title: "Portfolio",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="briefcase" tintColor={color} size={22} />
+              <SymbolView name="briefcase" tintColor={color as string} size={22} />
             ) : (
-              <Feather name="briefcase" size={22} color={color} />
+              <Feather name="briefcase" size={22} color={color as string} />
             ),
         }}
       />
@@ -107,9 +107,9 @@ function ClassicTabLayout() {
           title: "Watchlist",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="star" tintColor={color} size={22} />
+              <SymbolView name="star" tintColor={color as string} size={22} />
             ) : (
-              <Feather name="star" size={22} color={color} />
+              <Feather name="star" size={22} color={color as string} />
             ),
         }}
       />
@@ -119,9 +119,9 @@ function ClassicTabLayout() {
           title: "Market",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="storefront" tintColor={color} size={22} />
+              <SymbolView name="storefront" tintColor={color as string} size={22} />
             ) : (
-              <Feather name="shopping-bag" size={22} color={color} />
+              <Feather name="shopping-bag" size={22} color={color as string} />
             ),
         }}
       />
@@ -131,9 +131,9 @@ function ClassicTabLayout() {
           title: "Profile",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="person" tintColor={color} size={22} />
+              <SymbolView name="person" tintColor={color as string} size={22} />
             ) : (
-              <Feather name="user" size={22} color={color} />
+              <Feather name="user" size={22} color={color as string} />
             ),
         }}
       />

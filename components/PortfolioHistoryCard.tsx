@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     height: CHART_H,
   },
   lockOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },

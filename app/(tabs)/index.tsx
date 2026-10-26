@@ -4,7 +4,6 @@ import {
   ScrollView,
   Text,
   StyleSheet,
-  Dimensions,
   ActivityIndicator,
   Platform,
   RefreshControl,
@@ -24,7 +23,6 @@ import { NewsItem } from "@/components/NewsItem";
 import { useGoldNews } from "@/hooks/useGoldNews";
 import { ShareGoldButton } from "@/components/ShareGoldButton";
 
-const { width: SCREEN_W } = Dimensions.get("window");
 
 function formatTime(timestamp: number, range: TimeRange) {
   const d = new Date(timestamp);
